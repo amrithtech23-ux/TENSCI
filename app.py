@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import random
+import re
 
 # Page Configuration
 st.set_page_config(
@@ -119,211 +120,100 @@ if "chat_response" not in st.session_state:
     st.session_state.chat_response = ""
 if "tamil_translation" not in st.session_state:
     st.session_state.tamil_translation = ""
+if "topics_list" not in st.session_state:
+    st.session_state.topics_list = []
+
+# Function to load and parse AllTopic.txt
+@st.cache_data
+def load_topics():
+    """Load and parse topics from AllTopic.txt file"""
+    try:
+        with open("AllTopic.txt", "r", encoding="utf-8") as f:
+            content = f.read()
+        
+        # Parse topics - extract all numbered topics
+        topics = []
+        # Match patterns like "1. Topic text" or "151. Electric current..."
+        pattern = r'^\s*(\d+)\.\s+(.+)$'
+        for line in content.split('\n'):
+            match = re.match(pattern, line.strip())
+            if match:
+                topic_num = match.group(1)
+                topic_text = match.group(2).strip()
+                topics.append({
+                    'number': topic_num,
+                    'text': topic_text,
+                    'full': f"{topic_num}. {topic_text}"
+                })
+        
+        return topics
+    except Exception as e:
+        st.error(f"Error loading topics: {e}")
+        return []
+
+# Load topics on first run
+if not st.session_state.topics_list:
+    st.session_state.topics_list = load_topics()
+
+# Function to search relevant topics
+def search_topics(query, topics):
+    """Search for topics relevant to the user's query"""
+    query_lower = query.lower()
+    relevant_topics = []
+    
+    for topic in topics:
+        topic_text_lower = topic['text'].lower()
+        # Check if query words appear in topic
+        query_words = query_lower.split()
+        match_count = sum(1 for word in query_words if word in topic_text_lower and len(word) > 3)
+        
+        if match_count > 0:
+            relevant_topics.append({
+                'topic': topic,
+                'score': match_count
+            })
+    
+    # Sort by relevance score
+    relevant_topics.sort(key=lambda x: x['score'], reverse=True)
+    return relevant_topics[:10]  # Return top 10 relevant topics
 
 # Title
 st.markdown('<h1 class="main-header">⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot</h1>', unsafe_allow_html=True)
 
-# ENHANCED PROMPT POOL - Covering All Units from Knowledge Base
-PROMPT_POOL = [
-    # UNIT 1: LAWS OF MOTION
-    "Explain Newton's First Law of Motion with real-life examples.",
-    "What is the difference between mass and weight? Provide formulas.",
-    "Derive F = ma from Newton's Second Law of Motion.",
-    "How does rocket propulsion demonstrate conservation of momentum?",
-    "Define torque and explain its application in a steering wheel.",
-    "Explain the principle of moments using a seesaw example.",
-    "What is impulse and how is it related to change in momentum?",
-    "Explain inertia of rest, motion, and direction with examples.",
-    "How does the value of 'g' vary with altitude and depth?",
-    "State and explain Newton's Universal Law of Gravitation.",
-    "Describe the working of shock absorbers using impulse-momentum theorem.",
-    "What are balanced and unbalanced forces? Give examples.",
+# Generate suggestion prompts from topics
+def generate_suggestions(topics):
+    """Generate random suggestion prompts from topics"""
+    if not topics:
+        return [
+            "Explain Newton's First Law of Motion",
+            "What is electric current?",
+            "Explain photosynthesis process",
+            "What is Ohm's Law?",
+            "Explain the structure of atom"
+        ]
     
-    # UNIT 2: OPTICS
-    "Explain the wave nature of light and the formula c = νλ.",
-    "State and explain Snell's Law of Refraction with examples.",
-    "What is dispersion of light? Explain spectrum formation through a prism.",
-    "Explain Rayleigh scattering and why the sky appears blue.",
-    "Describe the formation of images by convex and concave lenses.",
-    "What is myopia and how is it corrected using lenses?",
-    "Explain the working of a simple microscope.",
-    "What is total internal reflection? Give its applications.",
-    "Describe the structure and working of the human eye.",
-    "Explain why clouds appear white (Mie scattering).",
+    # Select random topics and convert to questions
+    selected = random.sample(topics, min(10, len(topics)))
+    suggestions = []
+    for topic in selected:
+        text = topic['text']
+        # Convert topic to question format
+        if text.startswith(('Explain', 'Define', 'Describe', 'What is', 'How')):
+            suggestions.append(text)
+        else:
+            suggestions.append(f"Explain {text.lower()}")
     
-    # UNIT 3: THERMAL PHYSICS
-    "Explain the difference between heat and temperature.",
-    "What is thermal expansion? Explain linear, superficial, and cubical expansion.",
-    "State and explain Boyle's Law with mathematical representation.",
-    "Describe real and apparent expansion of liquids.",
-    "What is specific heat capacity? Explain its significance.",
-    "Explain the working principle of a mercury thermometer.",
-    "What is absolute zero? Explain the Kelvin temperature scale.",
-    
-    # UNIT 4: ELECTRICITY
-    "State and explain Ohm's Law with formula V = IR.",
-    "What is the difference between series and parallel circuits?",
-    "Explain the heating effect of electric current and Joule's Law.",
-    "Describe the domestic electric circuit and safety measures.",
-    "What is the function of a fuse and MCB in household circuits?",
-    "Explain the difference between AC and DC current.",
-    "What is electrical resistivity? How does it differ from resistance?",
-    "Describe the working principle of an LED bulb.",
-    "How is electrical energy consumption calculated? Explain kWh.",
-    
-    # UNIT 5: ACOUSTICS
-    "Explain the production and propagation of sound waves.",
-    "What is the Doppler Effect? Explain with examples.",
-    "Describe the reflection of sound and its applications.",
-    "What is an echo? Explain the conditions for hearing a distinct echo.",
-    "Explain the difference between musical sound and noise.",
-    "What are ultrasonic waves? Give their applications.",
-    "Describe the working of SONAR and its uses.",
-    "Explain how sound travels faster in solids than in gases.",
-    
-    # UNIT 6: NUCLEAR PHYSICS
-    "What is radioactivity? Explain natural and artificial radioactivity.",
-    "Describe the properties of alpha, beta, and gamma rays.",
-    "Explain nuclear fission and its applications in power generation.",
-    "What is nuclear fusion? How does it differ from fission?",
-    "Describe the working principle of an atom bomb.",
-    "What are isotopes? Give examples and applications.",
-    "Explain the concept of half-life in radioactive decay.",
-    "What are the safety measures for handling radioactive materials?",
-    
-    # UNIT 7: ATOMS AND MOLECULES
-    "Explain Dalton's atomic theory and its limitations.",
-    "What is the mole concept? Explain Avogadro's number.",
-    "Describe the structure of an atom with subatomic particles.",
-    "What is the difference between atoms and molecules?",
-    "Explain isotopes, isobars, and isotones with examples.",
-    "Calculate the molecular mass of H₂SO₄ and CaCO₃.",
-    "What is atomicity? Give examples of monoatomic, diatomic molecules.",
-    
-    # UNIT 8: PERIODIC CLASSIFICATION
-    "State the Modern Periodic Law and explain its significance.",
-    "Describe the trends in atomic radius across periods and groups.",
-    "What is ionization energy? Explain its periodic variation.",
-    "Explain electronegativity and its role in bond formation.",
-    "Describe the extraction of aluminium from bauxite ore.",
-    "What is corrosion? Explain the rusting of iron and prevention methods.",
-    "Describe the metallurgy of copper with chemical equations.",
-    "What are alloys? Give examples and their uses.",
-    
-    # UNIT 9: SOLUTIONS
-    "What is a solution? Explain solute, solvent, and dissolution.",
-    "Describe saturated, unsaturated, and supersaturated solutions.",
-    "What factors affect the solubility of substances?",
-    "Explain mass percentage and volume percentage concentration.",
-    "What is water of crystallization? Give examples of hydrated salts.",
-    "Describe hygroscopy and deliquescence with examples.",
-    "How does temperature affect the solubility of gases in liquids?",
-    
-    # UNIT 10: CHEMICAL REACTIONS
-    "What are the different types of chemical reactions? Give examples.",
-    "Explain combination and decomposition reactions.",
-    "Describe displacement and double displacement reactions.",
-    "What is a redox reaction? Explain oxidation and reduction.",
-    "Explain the pH scale and its significance in daily life.",
-    "What is chemical equilibrium? Describe its characteristics.",
-    "Describe the factors affecting the rate of chemical reactions.",
-    "What is neutralization? Give its applications.",
-    
-    # UNIT 11: CARBON COMPOUNDS
-    "What are the unique properties of carbon?",
-    "Explain the classification of hydrocarbons: alkanes, alkenes, alkynes.",
-    "Describe the IUPAC nomenclature system for organic compounds.",
-    "What are functional groups? Give examples of alcohols and carboxylic acids.",
-    "Explain the preparation and properties of ethanol.",
-    "Describe the manufacture and uses of ethanoic acid.",
-    "What is saponification? Explain the cleansing action of soap.",
-    "Compare soaps and detergents. Which is better and why?",
-    
-    # UNIT 12: PLANT ANATOMY & PHYSIOLOGY
-    "Describe the structure of a dicot root with a labeled diagram.",
-    "What are the differences between monocot and dicot stems?",
-    "Explain the process of photosynthesis with its equation.",
-    "Describe the structure of chloroplast and its functions.",
-    "What is transpiration? Explain its significance in plants.",
-    "Describe aerobic and anaerobic respiration in plants.",
-    "What are plant hormones? Explain the functions of auxins.",
-    
-    # UNIT 13: ANIMAL STRUCTURE
-    "Describe the external morphology of a leech.",
-    "Explain the digestive system of a rabbit with a diagram.",
-    "What are the adaptations of leech for parasitic life?",
-    "Describe the circulatory system of rabbit.",
-    "Explain the structure of mammalian skin and its derivatives.",
-    
-    # UNIT 14: TRANSPORT & CIRCULATION
-    "Explain the transport of water and minerals in plants.",
-    "Describe the structure and functions of blood components.",
-    "What is double circulation? Explain with a flow chart.",
-    "Describe the structure of the human heart.",
-    "Explain the cardiac cycle and heart sounds.",
-    "What are blood groups? Explain the ABO system.",
-    "Describe the lymphatic system and its functions.",
-    
-    # UNIT 15: NERVOUS SYSTEM
-    "Describe the structure of a neuron with a diagram.",
-    "Explain the reflex arc with an example.",
-    "What are the different parts of the human brain?",
-    "Describe the autonomic nervous system and its divisions.",
-    "Explain the structure of the human eye and vision process.",
-    "What is a synapse? Explain nerve impulse transmission.",
-    
-    # GENETICS
-    "Explain Mendel's monohybrid cross experiment.",
-    "What are the three laws of Mendelian inheritance?",
-    "Describe the structure of DNA with a labeled diagram.",
-    "Explain the process of DNA replication.",
-    "What is sex determination in humans? Explain the mechanism.",
-    "Describe chromosomal disorders: Down's syndrome.",
-    "What are mutations? Explain types of mutations.",
-    
-    # EVOLUTION
-    "What are homologous and analogous organs? Give examples.",
-    "Explain Darwin's theory of natural selection.",
-    "Describe Lamarck's theory of inheritance of acquired characters.",
-    "What are vestigial organs? Give examples in humans.",
-    "Explain the biogenetic law with examples.",
-    "Describe fossilization and its importance in evolution.",
-    "What is Archaeopteryx? Explain its significance as a connecting link.",
-    
-    # PLANT BREEDING
-    "What is plant breeding? Explain the objectives.",
-    "Describe the Green Revolution and its impact.",
-    "Explain hybridization technique in crop improvement.",
-    "What is mutation breeding? Give examples.",
-    "Describe biofortification and its importance.",
-    "What is polyploidy breeding? Explain with examples.",
-    
-    # ANIMAL BREEDING & BIOTECHNOLOGY
-    "Explain inbreeding and outbreeding in animal breeding.",
-    "What is heterosis or hybrid vigor?",
-    "Describe the process of gene cloning.",
-    "Explain the applications of biotechnology in medicine.",
-    "What are GMOs? Give examples and benefits.",
-    "Describe stem cell therapy and its applications.",
-    "What is DNA fingerprinting? Explain its uses.",
-    
-    # HEALTH & DISEASE
-    "What are the types of abuse? Explain child abuse prevention.",
-    "Describe the hazards of tobacco and alcohol abuse.",
-    "Explain diabetes mellitus: types, causes, and management.",
-    "What is obesity? Explain BMI calculation and health risks.",
-    "Describe cardiovascular diseases and prevention methods.",
-    "What is cancer? Explain types and treatment modalities."
-]
+    return suggestions
+
+# Get suggestions
+suggestions = generate_suggestions(st.session_state.topics_list)
 
 # Section Header - GREEN color
 st.markdown('<p class="section-header">💡 Suggested Academic Prompts</p>', unsafe_allow_html=True)
 
 # Display 10 random prompts in 2 columns with copy buttons
-selected_prompts = random.sample(PROMPT_POOL, min(10, len(PROMPT_POOL)))
-
 cols = st.columns(2)
-for i, prompt in enumerate(selected_prompts):
+for i, prompt in enumerate(suggestions):
     col_idx = i % 2
     with cols[col_idx]:
         st.markdown(f"""
@@ -365,9 +255,19 @@ with col2:
 with col3:
     reset_btn = st.button("🔄 Reset", use_container_width=True)
 
-# Function to get English response
-def get_english_response(query):
+# Function to get response using topics and API
+def get_response_from_topics(query, topics):
+    """Get response by searching topics and using API to explain them"""
     try:
+        # Search for relevant topics
+        relevant = search_topics(query, topics)
+        
+        if not relevant:
+            return "⚠️ No relevant topics found in the knowledge base. Please try rephrasing your query.\n\nExample queries:\n- 'Explain electric current'\n- 'What is Ohm's Law?'\n- 'Explain Newton's laws'"
+        
+        # Build context from relevant topics
+        context_topics = "\n".join([f"{r['topic']['full']}" for r in relevant])
+        
         api_key = st.secrets.get("OPENROUTER_API_KEY")
         
         if not api_key:
@@ -380,16 +280,31 @@ def get_english_response(query):
             "X-Title": "TENSCI Chatbot"
         }
         
+        system_prompt = f"""You are an academic science tutor for 10th Standard Tamil Nadu State Board students. 
+
+The user is asking about: "{query}"
+
+Relevant topics from the syllabus:
+{context_topics}
+
+Provide a clear, detailed, and curriculum-aligned explanation covering:
+1. Definition and concept
+2. Key formulas (if applicable)
+3. Real-life examples and applications
+4. Important points for students to remember
+
+Use formal academic language suitable for Tamil Nadu State Board 10th standard students. Keep explanations concise but comprehensive."""
+
         payload = {
             "model": "qwen/qwen-2.5-72b-instruct",
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are an academic science tutor for 10th Standard Tamil Nadu State Board students. Provide clear, accurate, and curriculum-aligned answers. Use formal academic language. Structure responses with definitions, formulas, examples, and real-life applications. Keep explanations concise, educational, and strictly focused on the TN State Board syllabus covering Physics, Chemistry, and Biology topics."
+                    "content": system_prompt
                 },
                 {
                     "role": "user",
-                    "content": query
+                    "content": f"Explain the topic(s) related to: {query}"
                 }
             ],
             "temperature": 0.6,
@@ -406,7 +321,14 @@ def get_english_response(query):
         if response.status_code == 200:
             result = response.json()
             if "choices" in result and len(result["choices"]) > 0:
-                return result["choices"][0]["message"]["content"]
+                content = result["choices"][0]["message"]["content"]
+                
+                # Add relevant topics found info
+                topics_found = f"📚 **Relevant Topics Found ({len(relevant)}):**\n"
+                for r in relevant[:5]:  # Show top 5
+                    topics_found += f"• Topic {r['topic']['number']}: {r['topic']['text']}\n"
+                
+                return f"{topics_found}\n\n{content}"
             else:
                 return "⚠️ Error: Invalid response format from API."
         elif response.status_code == 401:
@@ -424,50 +346,35 @@ def get_english_response(query):
     except Exception as e:
         return f"⚠️ Unexpected Error: {str(e)}\n\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
 
-# Function to translate to Tamil - COMPLETE TRANSLATION
-def translate_to_tamil(text):
-    try:
-        api_key = st.secrets.get("OPENROUTER_API_KEY")
-        
-        if not api_key:
-            return "⚠️ Translation API key not found."
-        
-        # Check text length and split if necessary
-        max_chunk_size = 2000  # Characters per chunk
-        
-        if len(text) <= max_chunk_size:
-            # Single translation for short text
-            return translate_chunk(text, api_key)
-        else:
-            # Chunk-based translation for long text
-            chunks = [text[i:i+max_chunk_size] for i in range(0, len(text), max_chunk_size)]
-            translated_chunks = []
-            
-            for i, chunk in enumerate(chunks):
-                translated_chunk = translate_chunk(chunk, api_key)
-                translated_chunks.append(translated_chunk)
-            
-            return "\n\n".join(translated_chunks)
-            
-    except Exception as e:
-        return f"⚠️ Translation Error: {str(e)}"
+# API Call & Response Handling
+if submit_btn and user_input.strip():
+    with st.spinner("🔍 Searching topics and retrieving academic response..."):
+        st.session_state.chat_response = get_response_from_topics(user_input, st.session_state.topics_list)
+        st.session_state.tamil_translation = ""  # Clear previous translation
+        st.rerun()
 
-def translate_chunk(text_chunk, api_key):
-    """Translate a single chunk of text to Tamil"""
-    try:
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://github.com/TENSCI",
-            "X-Title": "TENSCI Tamil Translation"
-        }
-        
-        payload = {
-            "model": "qwen/qwen-2.5-72b-instruct",
-            "messages": [
-                {
-                    "role": "system",
-                    "content": """You are a professional Tamil translator specializing in science education. 
+# Translation Handling
+if translate_btn and st.session_state.chat_response:
+    with st.spinner("🌐 Translating to Tamil... This may take a moment for complete translation."):
+        try:
+            api_key = st.secrets.get("OPENROUTER_API_KEY")
+            
+            if not api_key:
+                st.session_state.tamil_translation = "⚠️ Translation API key not found."
+            else:
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://github.com/TENSCI",
+                    "X-Title": "TENSCI Tamil Translation"
+                }
+                
+                payload = {
+                    "model": "qwen/qwen-2.5-72b-instruct",
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": """You are a professional Tamil translator specializing in science education. 
 Translate the following science content from English to simple, clear Tamil suitable for 10th standard Tamil medium students in Tamil Nadu State Board.
 
 IMPORTANT INSTRUCTIONS:
@@ -479,47 +386,35 @@ IMPORTANT INSTRUCTIONS:
 6. DO NOT skip any content - translate the entire text
 7. Use proper Tamil grammar and vocabulary appropriate for 10th standard students
 8. For mathematical formulas, keep them as is but explain in Tamil"""
-                },
-                {
-                    "role": "user",
-                    "content": f"Translate this COMPLETELY to Tamil for 10th standard Tamil medium students. Translate every word, every section, every example:\n\n{text_chunk}"
+                        },
+                        {
+                            "role": "user",
+                            "content": f"Translate this COMPLETELY to Tamil for 10th standard Tamil medium students. Translate every word, every section, every example:\n\n{st.session_state.chat_response}"
+                        }
+                    ],
+                    "temperature": 0.7,
+                    "max_tokens": 4000
                 }
-            ],
-            "temperature": 0.7,
-            "max_tokens": 4000  # Increased for complete translation
-        }
+                
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=60
+                )
+                
+                if response.status_code == 200:
+                    result = response.json()
+                    if "choices" in result and len(result["choices"]) > 0:
+                        st.session_state.tamil_translation = result["choices"][0]["message"]["content"]
+                    else:
+                        st.session_state.tamil_translation = "⚠️ Translation error: Invalid response format."
+                else:
+                    st.session_state.tamil_translation = f"⚠️ Translation Error {response.status_code}: {response.text}"
+                    
+        except Exception as e:
+            st.session_state.tamil_translation = f"⚠️ Translation Error: {str(e)}"
         
-        response = requests.post(
-            "https://openrouter.ai/api/v1/chat/completions",
-            headers=headers,
-            json=payload,
-            timeout=60  # Increased timeout
-        )
-        
-        if response.status_code == 200:
-            result = response.json()
-            if "choices" in result and len(result["choices"]) > 0:
-                translation = result["choices"][0]["message"]["content"]
-                return translation
-            else:
-                return "⚠️ Translation error: Invalid response format."
-        else:
-            return f"⚠️ Translation Error {response.status_code}: {response.text}"
-            
-    except Exception as e:
-        return f"⚠️ Translation chunk error: {str(e)}"
-
-# API Call & Response Handling
-if submit_btn and user_input.strip():
-    with st.spinner("🔍 Retrieving academic response..."):
-        st.session_state.chat_response = get_english_response(user_input)
-        st.session_state.tamil_translation = ""  # Clear previous translation
-        st.rerun()
-
-# Translation Handling
-if translate_btn and st.session_state.chat_response:
-    with st.spinner("🌐 Translating to Tamil... This may take a moment for complete translation."):
-        st.session_state.tamil_translation = translate_to_tamil(st.session_state.chat_response)
         st.rerun()
 
 if reset_btn:
@@ -572,3 +467,11 @@ if st.session_state.chat_response:
                 label_visibility="collapsed",
                 key="tamil_placeholder"
             )
+
+# Footer with topic count
+st.divider()
+st.markdown(f"""
+<div style='text-align: center; color: #6b7280; font-size: 0.9rem;'>
+📚 Knowledge Base: {len(st.session_state.topics_list)} topics loaded from AllTopic.txt
+</div>
+""", unsafe_allow_html=True)
