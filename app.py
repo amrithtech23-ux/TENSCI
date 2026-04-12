@@ -25,7 +25,7 @@ st.markdown("""
 .stTextArea textarea, div[data-testid="stTextArea"] textarea {
     border: 4px solid #000000 !important;
     background-color: #0056b3 !important;
-    color: White !important;
+    color: Green !important;
     font-weight: bold !important;
     font-size: 1.2rem !important;
     border-radius: 8px !important;
