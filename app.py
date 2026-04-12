@@ -14,7 +14,7 @@ st.markdown("""
 <style>
 /* Main title in white */
 .main-header {
-    color: Blue !important;
+    color: Red !important;
     font-weight: bold !important;
     font-size: 2rem !important;
     text-align: center !important;
