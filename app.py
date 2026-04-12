@@ -135,8 +135,6 @@ if "topics_list" not in st.session_state:
     st.session_state.topics_list = []
 if "search_counter" not in st.session_state:
     st.session_state.search_counter = 0
-if "last_input_query" not in st.session_state:
-    st.session_state.last_input_query = ""
 
 # ============================================================================
 # TAMIL SCIENTIFIC VOCABULARY - TN STATE BOARD STANDARD TERMS
@@ -288,7 +286,7 @@ def load_topics():
             content = f.read()
         
         topics = []
-        # Pattern to match: "551. Eye colour as continuous variation trait example"
+        # Pattern to match: "295. Chain reaction – self-propagating neutron multiplication process"
         pattern = r'^\s*(\d+)\.\s+(.+)$'
         
         for line in content.split('\n'):
@@ -321,15 +319,14 @@ if not st.session_state.topics_list:
 # ============================================================================
 def search_topics(query, topics):
     """
-    Search for topics relevant to the user's query - FIXED VERSION
+    Search for topics relevant to the user's query - COMPLETELY FIXED VERSION
     
     Key Improvements:
-    ✅ Removed len(word) > 3 filter - Now "DNA", "eye", "as" etc. are matched
-    ✅ Added stop words filtering - Removes common words like "explain", "through", "what"
-    ✅ Phrase matching boost - If query phrase exists in topic, gets +10 score
-    ✅ Substring matching - Finds partial word matches
-    ✅ Case-insensitive search throughout using pre-computed search_text
-    ✅ Debug output - Prints matched topics to console for troubleshooting
+    ✅ Exact phrase matching with highest priority
+    ✅ All query words must be present for high relevance
+    ✅ Proper scoring system with clear priorities
+    ✅ Case-insensitive search
+    ✅ Returns most relevant topics first
     """
     query_lower = query.lower().strip()
     relevant_topics = []
@@ -344,70 +341,62 @@ def search_topics(query, topics):
         'as', 'it', 'this', 'that', 'these', 'those', 'i', 'you', 'we', 'they'
     }
     
-    # Extract meaningful query words (remove stop words, keep ALL lengths including 2-3 chars)
+    # Extract meaningful query words (remove stop words)
     query_words = [word for word in query_lower.split() if word not in stop_words and len(word) >= 2]
     
     for topic in topics:
         topic_search_text = topic['search_text']  # Already lowercase
         topic_words = topic_search_text.split()
         
-        # Method 1: Exact phrase/substring match (HIGHEST priority)
-        phrase_boost = 0
+        # Initialize score
+        score = 0
+        
+        # Method 1: EXACT PHRASE MATCH (HIGHEST PRIORITY - 100 points)
         if query_lower in topic_search_text:
-            phrase_boost = 15  # Highest boost for exact phrase match
+            score += 100
         elif topic_search_text in query_lower:
-            phrase_boost = 10
+            score += 80
         
-        # Method 2: Count word matches (including short words like "eye", "dna")
-        word_match_count = 0
-        for word in query_words:
-            if word in topic_search_text:
-                word_match_count += 1
+        # Method 2: ALL query words present in topic (HIGH PRIORITY - 50 points)
+        words_found = sum(1 for word in query_words if word in topic_search_text)
+        if words_found == len(query_words):
+            score += 50
+        else:
+            # Partial match: give proportional points
+            score += (words_found / len(query_words)) * 30
         
-        # Method 3: Substring/partial word matching
-        substring_boost = 0
-        for query_word in query_words:
-            for topic_word in topic_words:
-                # Check if query word is substring of topic word or vice versa
-                if query_word in topic_word or topic_word in query_word:
-                    if query_word != topic_word:  # Don't double-count exact matches
-                        substring_boost += 1
-                    break
-        
-        # Method 4: Multi-word phrase bonus (consecutive query words in topic)
+        # Method 3: Multi-word phrase bonus (consecutive query words)
         multi_word_bonus = 0
         if len(query_words) >= 2:
             for i in range(len(query_words) - 1):
                 phrase = f"{query_words[i]} {query_words[i+1]}"
                 if phrase in topic_search_text:
-                    multi_word_bonus += 5
+                    multi_word_bonus += 15
+        score += multi_word_bonus
         
-        # Calculate total relevance score
-        total_score = phrase_boost + (word_match_count * 2) + substring_boost + multi_word_bonus
+        # Method 4: Individual word matches
+        word_match_bonus = words_found * 5
+        score += word_match_bonus
         
-        if total_score > 0:
+        # Only add if score is significant (at least one query word matched)
+        if words_found > 0:
             relevant_topics.append({
                 'topic': topic,
-                'score': total_score,
-                'match_details': {
-                    'phrase_boost': phrase_boost,
-                    'word_matches': word_match_count,
-                    'substring_boost': substring_boost,
-                    'multi_word_bonus': multi_word_bonus
-                }
+                'score': score,
+                'words_matched': words_found,
+                'total_query_words': len(query_words)
             })
     
-    # Sort by score (highest first), then by topic number for consistency
-    relevant_topics.sort(key=lambda x: (-x['score'], int(x['topic']['number'])))
+    # Sort by score (highest first), then by words matched, then by topic number
+    relevant_topics.sort(key=lambda x: (-x['score'], -x['words_matched'], int(x['topic']['number'])))
     
     # Debug output (visible in terminal/console, not in UI)
     if relevant_topics and st.session_state.get('debug_mode', False):
         print(f"\n🔍 Search Debug for query: '{query}'")
-        print(f"   Query words analyzed: {query_words}")
+        print(f"   Query words: {query_words}")
         for i, rt in enumerate(relevant_topics[:5]):
-            details = rt['match_details']
-            print(f"   {i+1}. [Score: {rt['score']}] #{rt['topic']['number']}: {rt['topic']['text'][:70]}...")
-            print(f"      Details: phrase={details['phrase_boost']}, word={details['word_matches']}, substr={details['substring_boost']}, multi={details['multi_word_bonus']}")
+            print(f"   {i+1}. [Score: {rt['score']:.1f}] #{rt['topic']['number']}: {rt['topic']['text'][:70]}...")
+            print(f"      Words matched: {rt['words_matched']}/{rt['total_query_words']}")
     
     return relevant_topics[:10]  # Return top 10 most relevant topics
 
@@ -458,7 +447,6 @@ for i, prompt in enumerate(suggestions):
                 st.session_state.user_query = prompt
                 st.session_state.chat_response = ""
                 st.session_state.tamil_translation = ""
-                st.session_state.last_input_query = ""
                 st.session_state.search_counter += 1
                 st.rerun()
         with col_btn2:
@@ -507,7 +495,7 @@ def get_response_from_topics(query, topics):
         relevant = search_topics(query, topics)
         
         if not relevant:
-            return "⚠️ No relevant topics found in the knowledge base. Please try rephrasing your query.\n\nExample queries:\n- 'Explain electric current'\n- 'What is Ohm's Law?'\n- 'Explain Newton's laws'\n- 'Eye colour continuous variation'\n- 'Life activity regulation through DNA'"
+            return "⚠️ No relevant topics found in the knowledge base. Please try rephrasing your query.\n\nExample queries:\n- 'Explain electric current'\n- 'What is Ohm's Law?'\n- 'Explain Newton's laws'\n- 'Chain reaction self-propagating neutron'\n- 'Life activity regulation through DNA'"
         
         # Build context from relevant topics
         context_topics = "\n".join([f"{r['topic']['full']}" for r in relevant])
@@ -582,26 +570,21 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
 # ============================================================================
 if submit_btn and user_input.strip():
     current_query = user_input.strip()
-    last_query = st.session_state.get('last_input_query', '')
     current_counter = st.session_state.get('search_counter', 0)
     
-    # Always perform search if:
-    # 1. Query is different from last submitted query, OR
-    # 2. This is the first search (counter is 0)
-    if current_query != last_query or current_counter == 0:
-        with st.spinner("🔍 Searching topics and retrieving academic response..."):
-            # Clear previous results for new query (auto-reset)
-            st.session_state.chat_response = ""
-            st.session_state.tamil_translation = ""
-            
-            # Update session state
-            st.session_state.user_query = current_query
-            st.session_state.last_input_query = current_query
-            st.session_state.search_counter += 1
-            
-            # Perform search
-            st.session_state.chat_response = get_response_from_topics(current_query, st.session_state.topics_list)
-            st.rerun()
+    # Always perform search (auto-reset on every new submit click)
+    with st.spinner("🔍 Searching topics and retrieving academic response..."):
+        # Clear previous results for new query (auto-reset)
+        st.session_state.chat_response = ""
+        st.session_state.tamil_translation = ""
+        
+        # Update session state
+        st.session_state.user_query = current_query
+        st.session_state.search_counter += 1
+        
+        # Perform search
+        st.session_state.chat_response = get_response_from_topics(current_query, st.session_state.topics_list)
+        st.rerun()
 
 # ============================================================================
 # 🔁 TRANSLATION HANDLING WITH GOOGLE TRANSLATE + VOCABULARY ENHANCEMENT
@@ -648,7 +631,6 @@ if reset_btn:
     st.session_state.user_query = ""
     st.session_state.chat_response = ""
     st.session_state.tamil_translation = ""
-    st.session_state.last_input_query = ""
     st.session_state.search_counter = 0
     st.rerun()
 
@@ -707,7 +689,6 @@ st.markdown(f"""
 📚 Knowledge Base: {len(st.session_state.topics_list)} topics loaded from AllTopic.txt<br>
 🔤 Tamil Scientific Vocabulary: {len(TAMIL_SCIENCE_VOCAB)} standard terms loaded<br>
 🌐 Translation: Google Translate + TN State Board vocabulary enhancement<br>
-🔍 Search: Case-insensitive + substring matching + short-word support enabled<br>
-🔄 Auto-Reset: Enabled for each new search
+🔍 Search: Exact phrase matching + all-words-required + auto-reset enabled
 </div>
 """, unsafe_allow_html=True)
