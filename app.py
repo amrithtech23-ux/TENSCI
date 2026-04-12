@@ -1,16 +1,22 @@
+# app.py
 import streamlit as st
 import requests
 import random
 import re
+from deep_translator import GoogleTranslator
 
-# Page Configuration
+# ============================================================================
+# PAGE CONFIGURATION
+# ============================================================================
 st.set_page_config(
     page_title="TENSCI Chatbot",
     page_icon="⚖️",
     layout="wide"
 )
 
-# Custom CSS for Exact Styling Requirements
+# ============================================================================
+# CUSTOM CSS FOR EXACT STYLING REQUIREMENTS
+# ============================================================================
 st.markdown("""
 <style>
 /* Main title in Blue */
@@ -113,7 +119,9 @@ div[data-testid="stMarkdown"] h6 {
 </style>
 """, unsafe_allow_html=True)
 
-# Initialize Session State
+# ============================================================================
+# INITIALIZE SESSION STATE
+# ============================================================================
 if "user_query" not in st.session_state:
     st.session_state.user_query = ""
 if "chat_response" not in st.session_state:
@@ -123,7 +131,9 @@ if "tamil_translation" not in st.session_state:
 if "topics_list" not in st.session_state:
     st.session_state.topics_list = []
 
-# Tamil Scientific Vocabulary - TN State Board Standard Terms
+# ============================================================================
+# TAMIL SCIENTIFIC VOCABULARY - TN STATE BOARD STANDARD TERMS
+# ============================================================================
 TAMIL_SCIENCE_VOCAB = {
     # Physics Terms
     "diffusion": "பரவல்",
@@ -221,7 +231,9 @@ TAMIL_SCIENCE_VOCAB = {
     "summary": "சுருக்கம்"
 }
 
-# Function to load and parse AllTopic.txt
+# ============================================================================
+# FUNCTION TO LOAD AND PARSE AllTopic.txt
+# ============================================================================
 @st.cache_data
 def load_topics():
     """Load and parse topics from AllTopic.txt file"""
@@ -229,9 +241,7 @@ def load_topics():
         with open("AllTopic.txt", "r", encoding="utf-8") as f:
             content = f.read()
         
-        # Parse topics - extract all numbered topics
         topics = []
-        # Match patterns like "1. Topic text" or "151. Electric current..."
         pattern = r'^\s*(\d+)\.\s+(.+)$'
         for line in content.split('\n'):
             match = re.match(pattern, line.strip())
@@ -253,7 +263,9 @@ def load_topics():
 if not st.session_state.topics_list:
     st.session_state.topics_list = load_topics()
 
-# Function to search relevant topics
+# ============================================================================
+# FUNCTION TO SEARCH RELEVANT TOPICS
+# ============================================================================
 def search_topics(query, topics):
     """Search for topics relevant to the user's query"""
     query_lower = query.lower()
@@ -261,7 +273,6 @@ def search_topics(query, topics):
     
     for topic in topics:
         topic_text_lower = topic['text'].lower()
-        # Check if query words appear in topic
         query_words = query_lower.split()
         match_count = sum(1 for word in query_words if word in topic_text_lower and len(word) > 3)
         
@@ -271,14 +282,14 @@ def search_topics(query, topics):
                 'score': match_count
             })
     
-    # Sort by relevance score
     relevant_topics.sort(key=lambda x: x['score'], reverse=True)
-    return relevant_topics[:10]  # Return top 10 relevant topics
+    return relevant_topics[:10]
 
-# Title
+# ============================================================================
+# TITLE & SUGGESTIONS
+# ============================================================================
 st.markdown('<h1 class="main-header">⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot</h1>', unsafe_allow_html=True)
 
-# Generate suggestion prompts from topics
 def generate_suggestions(topics):
     """Generate random suggestion prompts from topics"""
     if not topics:
@@ -290,12 +301,10 @@ def generate_suggestions(topics):
             "Explain the structure of atom"
         ]
     
-    # Select random topics and convert to questions
     selected = random.sample(topics, min(10, len(topics)))
     suggestions = []
     for topic in selected:
         text = topic['text']
-        # Convert topic to question format
         if text.startswith(('Explain', 'Define', 'Describe', 'What is', 'How')):
             suggestions.append(text)
         else:
@@ -303,13 +312,10 @@ def generate_suggestions(topics):
     
     return suggestions
 
-# Get suggestions
 suggestions = generate_suggestions(st.session_state.topics_list)
 
-# Section Header - GREEN color
 st.markdown('<p class="section-header">💡 Suggested Academic Prompts</p>', unsafe_allow_html=True)
 
-# Display 10 random prompts in 2 columns with copy buttons
 cols = st.columns(2)
 for i, prompt in enumerate(suggestions):
     col_idx = i % 2
@@ -334,7 +340,9 @@ for i, prompt in enumerate(suggestions):
 
 st.divider()
 
-# Text Field 1: User Input
+# ============================================================================
+# USER INPUT SECTION
+# ============================================================================
 st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
 user_input = st.text_area(
     "Type your science question here...",
@@ -344,7 +352,6 @@ user_input = st.text_area(
     key="main_input"
 )
 
-# Buttons
 col1, col2, col3 = st.columns(3)
 with col1:
     submit_btn = st.button("📤 Submit Prompt", use_container_width=True)
@@ -353,17 +360,17 @@ with col2:
 with col3:
     reset_btn = st.button("🔄 Reset", use_container_width=True)
 
-# Function to get response using topics and API
+# ============================================================================
+# FUNCTION TO GET RESPONSE FROM TOPICS & API
+# ============================================================================
 def get_response_from_topics(query, topics):
     """Get response by searching topics and using API to explain them"""
     try:
-        # Search for relevant topics
         relevant = search_topics(query, topics)
         
         if not relevant:
             return "⚠️ No relevant topics found in the knowledge base. Please try rephrasing your query.\n\nExample queries:\n- 'Explain electric current'\n- 'What is Ohm's Law?'\n- 'Explain Newton's laws'"
         
-        # Build context from relevant topics
         context_topics = "\n".join([f"{r['topic']['full']}" for r in relevant])
         
         api_key = st.secrets.get("OPENROUTER_API_KEY")
@@ -396,14 +403,8 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
         payload = {
             "model": "qwen/qwen-2.5-72b-instruct",
             "messages": [
-                {
-                    "role": "system",
-                    "content": system_prompt
-                },
-                {
-                    "role": "user",
-                    "content": f"Explain the topic(s) related to: {query}"
-                }
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Explain the topic(s) related to: {query}"}
             ],
             "temperature": 0.6,
             "max_tokens": 2000
@@ -419,10 +420,7 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
         if response.status_code == 200:
             result = response.json()
             if "choices" in result and len(result["choices"]) > 0:
-                content = result["choices"][0]["message"]["content"]
-                
-                # Return ONLY the content - NO "Relevant Topics Found" section
-                return content
+                return result["choices"][0]["message"]["content"]
             else:
                 return "⚠️ Error: Invalid response format from API."
         elif response.status_code == 401:
@@ -440,92 +438,77 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
     except Exception as e:
         return f"⚠️ Unexpected Error: {str(e)}\n\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
 
-# API Call & Response Handling
+# ============================================================================
+# API CALL & RESPONSE HANDLING
+# ============================================================================
 if submit_btn and user_input.strip():
     with st.spinner("🔍 Searching topics and retrieving academic response..."):
         st.session_state.chat_response = get_response_from_topics(user_input, st.session_state.topics_list)
-        st.session_state.tamil_translation = ""  # Clear previous translation
+        st.session_state.tamil_translation = ""
         st.rerun()
 
-# Translation Handling - OPTIMIZED FOR SPEED AND SIMPLICITY
+# ============================================================================
+# 🔁 TRANSLATION HANDLING WITH GOOGLE TRANSLATE + VOCABULARY ENHANCEMENT
+# ============================================================================
 if translate_btn and st.session_state.chat_response:
     with st.spinner("🌐 தமிழாக்கம் செய்கிறது..."):
         try:
-            api_key = st.secrets.get("OPENROUTER_API_KEY")
+            english_text = st.session_state.chat_response
             
-            if not api_key:
-                st.session_state.tamil_translation = "⚠️ Translation API key not found."
-            else:
-                headers = {
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://github.com/TENSCI",
-                    "X-Title": "TENSCI Tamil Translation"
-                }
-                
-                # OPTIMIZED: Simple and direct translation prompt
-                payload = {
-                    "model": "qwen/qwen-2.5-72b-instruct",
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": """நீங்கள் தமிழ்நாடு அரசுப் பாடத்திட்டத்தின் 10-ஆம் வகுப்பு அறிவியல் ஆசிரியர்.
-
-முக்கிய வழிமுறைகள்:
-1. எளிய, தெளிவான தமிழில் மொழிபெயர்க்கவும்
-2. பாடப்புத்தக நடையில் எழுதவும்
-3. அறிவியல் சொற்களைத் தமிழில் பயன்படுத்தவும் (எ.கா: diffusion = பரவல், evolution = பரிணாமம்)
-4. சூத்திரங்களை ஆங்கிலத்தில் வைத்து, தமிழில் விளக்கவும்
-5. வாக்கியங்கள் சுருக்கமாகவும், புரியும்படியும் இருக்க வேண்டும்
-6. முழு உரையையும் மொழிபெயர்க்கவும் - எதையும் தவிர்க்க வேண்டாம்
-
-எடுத்துக்காட்டு:
-"Vestigial organs are body parts that have lost most or all of their ancestral functions through evolution."
-மொழிபெயர்ப்பு: "எச்ச உறுப்புகள் என்பவை, பரிணாமத்தின் காரணமாகத் தங்களின் மூதாதையர் செயல்பாடுகளைப் பெரும்பாலும் அல்லது முழுமையாக இழந்த உடல் பாகங்கள் ஆகும்."
-
-இதுபோன்ற எளிய, இயற்கையான தமிழ் நடையைப் பின்பற்றவும்."""
-                        },
-                        {
-                            "role": "user",
-                            "content": f"பின்வரும் ஆங்கில அறிவியல் உரையை 10-ஆம் வகுப்பு மாணவர்களுக்கு ஏற்ற எளிய தமிழில் மொழிபெயர்க்கவும்:\n\n{st.session_state.chat_response}"
-                        }
-                    ],
-                    "temperature": 0.5,
-                    "max_tokens": 2500  # OPTIMIZED: Reduced from 4000
-                }
-                
-                response = requests.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers=headers,
-                    json=payload,
-                    timeout=35  # OPTIMIZED: Reduced from 60 to 35 seconds
-                )
-                
-                if response.status_code == 200:
-                    result = response.json()
-                    if "choices" in result and len(result["choices"]) > 0:
-                        st.session_state.tamil_translation = result["choices"][0]["message"]["content"]
-                    else:
-                        st.session_state.tamil_translation = "⚠️ மொழிபெயர்ப்பு பிழை: தவறான பதில் வடிவம்."
-                else:
-                    st.session_state.tamil_translation = f"⚠️ மொழிபெயர்ப்பு பிழை {response.status_code}: {response.text}"
-                    
+            # Google Translate has ~5000 char limit - split into chunks
+            chunk_size = 4500
+            chunks = [english_text[i:i+chunk_size] for i in range(0, len(english_text), chunk_size)]
+            translated_chunks = []
+            
+            translator = GoogleTranslator(source='en', target='ta')
+            
+            for chunk in chunks:
+                # Small delay to avoid rate limiting
+                import time
+                time.sleep(0.5)
+                translated = translator.translate(chunk)
+                translated_chunks.append(translated)
+            
+            raw_tamil = " ".join(translated_chunks)
+            
+            # Enhance with TN State Board scientific vocabulary
+            enhanced_tamil = raw_tamil
+            for eng_term, tamil_term in TAMIL_SCIENCE_VOCAB.items():
+                # Word boundary regex to avoid partial replacements
+                pattern = r'\b' + re.escape(eng_term) + r'\b'
+                enhanced_tamil = re.sub(pattern, tamil_term, enhanced_tamil, flags=re.IGNORECASE)
+            
+            # Post-process: fix spacing/punctuation issues
+            fixes = [
+                (r"\.(\S)", r". \1"),
+                (r",(\S)", r", \1"),
+                (r"\s+", " "),
+            ]
+            for pattern, replacement in fixes:
+                enhanced_tamil = re.sub(pattern, replacement, enhanced_tamil)
+            
+            st.session_state.tamil_translation = enhanced_tamil.strip()
+            
         except Exception as e:
-            st.session_state.tamil_translation = f"⚠️ மொழிபெயர்ப்பு பிழை: {str(e)}"
+            st.session_state.tamil_translation = f"⚠️ மொழிபெயர்ப்பு பிழை: {str(e)}\n\nமாற்றீடு: கைமுறையாக மொழிபெயர்க்க முயற்சிக்கவும் அல்லது பின்னர் முயற்சிக்கவும்."
         
         st.rerun()
 
+# ============================================================================
+# RESET HANDLING
+# ============================================================================
 if reset_btn:
     st.session_state.user_query = ""
     st.session_state.chat_response = ""
     st.session_state.tamil_translation = ""
     st.rerun()
 
-# Display Results - Side by Side
+# ============================================================================
+# DISPLAY RESULTS - SIDE BY SIDE
+# ============================================================================
 if st.session_state.chat_response:
     st.divider()
     
-    # Two columns for English and Tamil
     col_eng, col_tam = st.columns(2)
     
     with col_eng:
@@ -566,11 +549,14 @@ if st.session_state.chat_response:
                 key="tamil_placeholder"
             )
 
-# Footer with topic count
+# ============================================================================
+# FOOTER
+# ============================================================================
 st.divider()
 st.markdown(f"""
 <div style='text-align: center; color: #6b7280; font-size: 0.9rem;'>
 📚 Knowledge Base: {len(st.session_state.topics_list)} topics loaded from AllTopic.txt<br>
-🔤 Tamil Scientific Vocabulary: {len(TAMIL_SCIENCE_VOCAB)} standard terms loaded
+🔤 Tamil Scientific Vocabulary: {len(TAMIL_SCIENCE_VOCAB)} standard terms loaded<br>
+🌐 Translation: Google Translate + TN State Board vocabulary enhancement
 </div>
 """, unsafe_allow_html=True)
