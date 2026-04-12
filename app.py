@@ -40,6 +40,14 @@ st.markdown("""
     margin: 1rem 0 !important;
 }
 
+/* Section Text area in white */
+.section-textarea {
+    color: white !important;
+    font-weight: bold !important;
+    font-size: 1.4rem !important;
+    margin: 1rem 0 !important;
+}
+
 /* Suggestion Prompt Styling */
 .suggestion-container {
     background-color: #f8f9fa;
@@ -158,7 +166,7 @@ for i, prompt in enumerate(selected_prompts):
 st.divider()
 
 # Text Field 1: User Input - White header
-st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
+st.markdown('<p class="section-textarea">📝 Enter Your Query</p>', unsafe_allow_html=True)
 user_input = st.text_area(
     "Type your science question here...",
     value=st.session_state.user_query,
@@ -245,7 +253,7 @@ if reset_btn:
     st.rerun()
 
 # Text Field 2: Multi-line Result Display - White header
-st.markdown('<p class="section-header">📖 Retrieved Academic Response</p>', unsafe_allow_html=True)
+st.markdown('<p class="section-textarea">📖 Retrieved Academic Response</p>', unsafe_allow_html=True)
 st.text_area(
     "Answer will appear here:",
     value=st.session_state.chat_response,
