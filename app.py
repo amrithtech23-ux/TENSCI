@@ -258,14 +258,14 @@ def clean_tamil_translation(text):
     # Remove markdown code markers
     cleaned = re.sub(r'`\$?(.*?)\$?`', r'\1', cleaned)
     
-    # Clean up extra spaces and newlines
+    # Clean up extra spaces and newlines - preserve paragraph structure
     cleaned = re.sub(r'\n\s*\n', '\n\n', cleaned)
     cleaned = re.sub(r' +', ' ', cleaned)
     
-    # Fix punctuation spacing
+    # Fix punctuation spacing for Tamil
     cleaned = re.sub(r'\s*([.,:;!?])\s*', r'\1 ', cleaned)
     
-    # Remove multiple consecutive newlines (keep max 2)
+    # Remove multiple consecutive newlines (keep max 2 for paragraphs)
     cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
     
     # Strip leading/trailing whitespace
@@ -284,9 +284,15 @@ def load_topics():
             content = f.read()
         
         topics = []
+        # Pattern to match: "551. Eye colour as continuous variation trait example"
         pattern = r'^\s*(\d+)\.\s+(.+)$'
+        
         for line in content.split('\n'):
-            match = re.match(pattern, line.strip())
+            line = line.strip()
+            # Skip empty lines and section headers
+            if not line or line.startswith('#') or line.startswith('---') or line.startswith('##'):
+                continue
+            match = re.match(pattern, line)
             if match:
                 topic_num = match.group(1)
                 topic_text = match.group(2).strip()
@@ -294,7 +300,7 @@ def load_topics():
                     'number': topic_num,
                     'text': topic_text,
                     'full': f"{topic_num}. {topic_text}",
-                    'search_text': topic_text.lower()
+                    'search_text': topic_text.lower()  # Pre-compute lowercase for case-insensitive search
                 })
         
         return topics
@@ -310,69 +316,96 @@ if not st.session_state.topics_list:
 # ✅ FIXED: FUNCTION TO SEARCH RELEVANT TOPICS
 # ============================================================================
 def search_topics(query, topics):
-    """Search for topics relevant to the user's query - IMPROVED VERSION"""
-    query_lower = query.lower()
+    """
+    Search for topics relevant to the user's query - FIXED VERSION
+    
+    Key Improvements:
+    ✅ Removed len(word) > 3 filter - Now "DNA", "eye", "as" etc. are matched
+    ✅ Added stop words filtering - Removes common words like "explain", "through", "what"
+    ✅ Phrase matching boost - If query phrase exists in topic, gets +10 score
+    ✅ Substring matching - Finds partial word matches
+    ✅ Case-insensitive search throughout using pre-computed search_text
+    ✅ Debug output - Prints matched topics to console for troubleshooting
+    """
+    query_lower = query.lower().strip()
     relevant_topics = []
     
+    # Stop words to filter out for better matching
     stop_words = {
         'explain', 'what', 'how', 'why', 'when', 'where', 'the', 'through', 
         'about', 'define', 'describe', 'is', 'are', 'was', 'were', 'be', 
         'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
         'would', 'could', 'should', 'may', 'might', 'can', 'a', 'an', 'and',
-        'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from'
+        'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from',
+        'as', 'it', 'this', 'that', 'these', 'those', 'i', 'you', 'we', 'they'
     }
     
+    # Extract meaningful query words (remove stop words, keep ALL lengths including 2-3 chars)
     query_words = [word for word in query_lower.split() if word not in stop_words and len(word) >= 2]
     
     for topic in topics:
-        topic_search_text = topic['search_text']
+        topic_search_text = topic['search_text']  # Already lowercase
         topic_words = topic_search_text.split()
         
-        word_match_count = sum(1 for word in query_words if word in topic_search_text)
-        
+        # Method 1: Exact phrase/substring match (HIGHEST priority)
         phrase_boost = 0
-        if query_lower in topic_search_text or topic_search_text in query_lower:
-            phrase_boost = 5
+        if query_lower in topic_search_text:
+            phrase_boost = 15  # Highest boost for exact phrase match
+        elif topic_search_text in query_lower:
+            phrase_boost = 10
         
-        key_term_boost = 0
+        # Method 2: Count word matches (including short words like "eye", "dna")
+        word_match_count = 0
+        for word in query_words:
+            if word in topic_search_text:
+                word_match_count += 1
+        
+        # Method 3: Substring/partial word matching
+        substring_boost = 0
         for query_word in query_words:
-            if len(query_word) >= 3:
-                for topic_word in topic_words:
-                    if query_word in topic_word or topic_word in query_word:
-                        key_term_boost += 1
-                        break
+            for topic_word in topic_words:
+                # Check if query word is substring of topic word or vice versa
+                if query_word in topic_word or topic_word in query_word:
+                    if query_word != topic_word:  # Don't double-count exact matches
+                        substring_boost += 1
+                    break
         
+        # Method 4: Multi-word phrase bonus (consecutive query words in topic)
         multi_word_bonus = 0
         if len(query_words) >= 2:
             for i in range(len(query_words) - 1):
                 phrase = f"{query_words[i]} {query_words[i+1]}"
                 if phrase in topic_search_text:
-                    multi_word_bonus += 2
+                    multi_word_bonus += 5
         
-        total_score = word_match_count + phrase_boost + key_term_boost + multi_word_bonus
+        # Calculate total relevance score
+        total_score = phrase_boost + (word_match_count * 2) + substring_boost + multi_word_bonus
         
         if total_score > 0:
             relevant_topics.append({
                 'topic': topic,
                 'score': total_score,
                 'match_details': {
-                    'word_matches': word_match_count,
                     'phrase_boost': phrase_boost,
-                    'key_term_boost': key_term_boost,
+                    'word_matches': word_match_count,
+                    'substring_boost': substring_boost,
                     'multi_word_bonus': multi_word_bonus
                 }
             })
     
+    # Sort by score (highest first), then by topic number for consistency
     relevant_topics.sort(key=lambda x: (-x['score'], int(x['topic']['number'])))
     
+    # Debug output (visible in terminal/console, not in UI)
     if relevant_topics and st.session_state.get('debug_mode', False):
         print(f"\n🔍 Search Debug for query: '{query}'")
         print(f"   Query words analyzed: {query_words}")
         for i, rt in enumerate(relevant_topics[:5]):
             details = rt['match_details']
             print(f"   {i+1}. [Score: {rt['score']}] #{rt['topic']['number']}: {rt['topic']['text'][:70]}...")
+            print(f"      Details: phrase={details['phrase_boost']}, word={details['word_matches']}, substr={details['substring_boost']}, multi={details['multi_word_bonus']}")
     
-    return relevant_topics[:10]
+    return relevant_topics[:10]  # Return top 10 most relevant topics
 
 # ============================================================================
 # TITLE & SUGGESTIONS
@@ -456,6 +489,8 @@ with st.sidebar:
     st.session_state.debug_mode = debug_mode
     if debug_mode:
         st.info("Debug mode enabled - check terminal for search details")
+    st.markdown("---")
+    st.markdown(f"📚 **Topics Loaded:** {len(st.session_state.topics_list)}")
 
 # ============================================================================
 # FUNCTION TO GET RESPONSE FROM TOPICS & API
@@ -466,8 +501,9 @@ def get_response_from_topics(query, topics):
         relevant = search_topics(query, topics)
         
         if not relevant:
-            return "⚠️ No relevant topics found in the knowledge base. Please try rephrasing your query.\n\nExample queries:\n- 'Explain electric current'\n- 'What is Ohm's Law?'\n- 'Explain Newton's laws'\n- 'Life activity regulation through DNA'"
+            return "⚠️ No relevant topics found in the knowledge base. Please try rephrasing your query.\n\nExample queries:\n- 'Explain electric current'\n- 'What is Ohm's Law?'\n- 'Explain Newton's laws'\n- 'Eye colour continuous variation'\n- 'Life activity regulation through DNA'"
         
+        # Build context from relevant topics
         context_topics = "\n".join([f"{r['topic']['full']}" for r in relevant])
         
         api_key = st.secrets.get("OPENROUTER_API_KEY")
@@ -560,7 +596,7 @@ if translate_btn and st.session_state.chat_response:
             translator = GoogleTranslator(source='en', target='ta')
             
             for chunk in chunks:
-                time.sleep(0.5)
+                time.sleep(0.5)  # Small delay to avoid rate limiting
                 translated = translator.translate(chunk)
                 translated_chunks.append(translated)
             
@@ -572,7 +608,7 @@ if translate_btn and st.session_state.chat_response:
                 pattern = r'\b' + re.escape(eng_term) + r'\b'
                 enhanced_tamil = re.sub(pattern, tamil_term, enhanced_tamil, flags=re.IGNORECASE)
             
-            # Clean and format the Tamil translation
+            # Clean and format the Tamil translation for proper paragraphs
             cleaned_tamil = clean_tamil_translation(enhanced_tamil)
             
             st.session_state.tamil_translation = cleaned_tamil
@@ -646,6 +682,6 @@ st.markdown(f"""
 📚 Knowledge Base: {len(st.session_state.topics_list)} topics loaded from AllTopic.txt<br>
 🔤 Tamil Scientific Vocabulary: {len(TAMIL_SCIENCE_VOCAB)} standard terms loaded<br>
 🌐 Translation: Google Translate + TN State Board vocabulary enhancement<br>
-🔍 Search: Case-insensitive + DNA/short-word matching enabled
+🔍 Search: Case-insensitive + substring matching + short-word support enabled
 </div>
 """, unsafe_allow_html=True)
