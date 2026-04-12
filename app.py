@@ -9,20 +9,51 @@ st.set_page_config(
     layout="centered"
 )
 
-# Custom CSS for Exact Styling Requirements
+# Custom CSS for Exact Styling Requirements - ENHANCED
 st.markdown("""
 <style>
-/* Main title in white */
-.main-header {
-    color: #ffffff !important;
-    font-weight: bold !important;
-    font-size: 2rem !important;
-    text-align: center !important;
-    margin-bottom: 2rem !important;
+/* GLOBAL BACKGROUND */
+.main .block-container {
+    background-color: #0056b3;
+    padding: 2rem;
+    border-radius: 10px;
 }
 
-/* Bold Border & Blue Background for Input & Result Fields */
-.stTextArea textarea, div[data-testid="stTextArea"] textarea {
+/* FORCE ALL HEADERS TO WHITE - MAXIMUM SPECIFICITY */
+h1, h2, h3, h4, h5, h6,
+.stMarkdown h1, .stMarkdown h2, .stMarkdown h3, 
+.stMarkdown h4, .stMarkdown h5, .stMarkdown h6,
+[data-testid="stMarkdown"] h1, [data-testid="stMarkdown"] h2,
+[data-testid="stMarkdown"] h3, [data-testid="stMarkdown"] h4,
+[data-testid="stMarkdown"] h5, [data-testid="stMarkdown"] h6,
+.css-1d391kg h1, .css-1d391kg h2, .css-1d391kg h3 {
+    color: #ffffff !important;
+    font-weight: bold !important;
+}
+
+/* Main Title */
+.main-title {
+    color: #ffffff !important;
+    font-weight: bold !important;
+    font-size: 2.2rem !important;
+    text-align: center !important;
+    margin-bottom: 2rem !important;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.3) !important;
+}
+
+/* Section Headers */
+.section-header {
+    color: #ffffff !important;
+    font-weight: bold !important;
+    font-size: 1.5rem !important;
+    margin: 1.5rem 0 1rem 0 !important;
+    text-shadow: 1px 1px 2px rgba(0,0,0,0.3) !important;
+}
+
+/* TEXT AREA - INPUT AND OUTPUT */
+.stTextArea textarea,
+[data-testid="stTextArea"] textarea,
+textarea {
     border: 4px solid #000000 !important;
     background-color: #0056b3 !important;
     color: #ffffff !important;
@@ -32,68 +63,57 @@ st.markdown("""
     line-height: 1.4 !important;
 }
 
-/* Section headers in white */
-.section-header {
-    color: #ffffff !important;
-    font-weight: bold !important;
-    font-size: 1.4rem !important;
-    margin: 1rem 0 !important;
+/* Placeholder text in white */
+.stTextArea textarea::placeholder,
+textarea::placeholder {
+    color: #e0e0e0 !important;
+    opacity: 0.8 !important;
 }
 
-/* Suggestion Prompt Styling */
-.suggestion-container {
-    background-color: #f8f9fa;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    padding: 12px;
-    margin: 8px 0;
+/* Suggestion containers */
+.suggestion-box {
+    background-color: #f8f9fa !important;
+    border: 2px solid #dee2e6 !important;
+    border-radius: 8px !important;
+    padding: 15px !important;
+    margin: 8px 0 !important;
 }
 
 .suggestion-text {
     color: #6b7280 !important;
     font-weight: bold !important;
     font-size: 1.1rem !important;
-    margin-bottom: 8px !important;
+    margin-bottom: 10px !important;
 }
 
-.copy-button {
-    font-size: 0.85rem !important;
-    padding: 4px 8px !important;
-}
-
-/* Button Styling */
+/* Buttons */
 .stButton > button {
-    font-weight: bold;
-    font-size: 1.1rem;
-    border-radius: 6px;
+    font-weight: bold !important;
+    font-size: 1.1rem !important;
+    border-radius: 6px !important;
+    border: 2px solid #ffffff !important;
 }
 
-/* Force ALL text to white in headers */
-h1, h2, h3, h4, h5, h6, 
-div[data-testid="stMarkdown"] h1,
-div[data-testid="stMarkdown"] h2,
-div[data-testid="stMarkdown"] h3,
-div[data-testid="stMarkdown"] h4,
-div[data-testid="stMarkdown"] h5,
-div[data-testid="stMarkdown"] h6 {
+/* Divider */
+.stDivider {
+    margin-top: 15px !important;
+    margin-bottom: 15px !important;
+}
+
+/* Override ALL Streamlit markdown colors */
+.stMarkdown, .stMarkdown p, .stMarkdown div {
     color: #ffffff !important;
 }
 
-/* Override Streamlit default styles */
-.css-1d391kg, .css-1lcbmhc, .css-16idsys {
+/* Ensure labels are white */
+label, .stMarkdown label {
     color: #ffffff !important;
 }
 
-.stDivider { 
-    margin-top: 10px; 
-    margin-bottom: 10px; 
-}
-
-/* White background for the whole app */
-.main .block-container {
-    background-color: #0056b3;
-    padding: 2rem;
-    border-radius: 10px;
+/* Code blocks */
+code {
+    color: #ffffff !important;
+    background-color: #004494 !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -104,8 +124,8 @@ if "user_query" not in st.session_state:
 if "chat_response" not in st.session_state:
     st.session_state.chat_response = ""
 
-# Title - Using markdown with custom class for white color
-st.markdown('<h1 class="main-header">⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot</h1>', unsafe_allow_html=True)
+# Title - WHITE COLOR GUARANTEED
+st.markdown('<h1 class="main-title">⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot</h1>', unsafe_allow_html=True)
 
 # 10 Random Suggestion Prompts from Knowledge Base (UNIT 1 & 2)
 PROMPT_POOL = [
@@ -126,7 +146,7 @@ PROMPT_POOL = [
     "List the characteristics of gravitational force."
 ]
 
-# Section Header - White color
+# Section Header - WHITE COLOR
 st.markdown('<p class="section-header">💡 Suggested Academic Prompts</p>', unsafe_allow_html=True)
 
 # Display 10 random prompts in 2 columns with copy buttons
@@ -136,14 +156,12 @@ cols = st.columns(2)
 for i, prompt in enumerate(selected_prompts):
     col_idx = i % 2
     with cols[col_idx]:
-        # Create a container for prompt and copy button
         st.markdown(f"""
-        <div class="suggestion-container">
+        <div class="suggestion-box">
             <div class="suggestion-text">{prompt}</div>
         </div>
         """, unsafe_allow_html=True)
         
-        # Copy button for each prompt
         col_btn1, col_btn2 = st.columns([3, 1])
         with col_btn1:
             if st.button("Use Prompt", key=f"use_{i}", use_container_width=True):
@@ -157,7 +175,7 @@ for i, prompt in enumerate(selected_prompts):
 
 st.divider()
 
-# Text Field 1: User Input - White header
+# Text Field 1: User Input - WHITE HEADER
 st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
 user_input = st.text_area(
     "Type your science question here...",
@@ -178,13 +196,11 @@ with col2:
 if submit_btn and user_input.strip():
     with st.spinner("🔍 Retrieving academic response..."):
         try:
-            # Get API key from secrets
             api_key = st.secrets.get("OPENROUTER_API_KEY")
             
             if not api_key:
                 st.session_state.chat_response = "⚠️ Configuration Error: OPENROUTER_API_KEY not found in secrets.toml. Please add your API key."
             else:
-                # Prepare headers
                 headers = {
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
@@ -192,7 +208,6 @@ if submit_btn and user_input.strip():
                     "X-Title": "TENSCI Chatbot"
                 }
                 
-                # Prepare payload with correct format
                 payload = {
                     "model": "qwen/qwen-2.5-72b-instruct",
                     "messages": [
@@ -209,7 +224,6 @@ if submit_btn and user_input.strip():
                     "max_tokens": 1000
                 }
                 
-                # Make API request
                 response = requests.post(
                     "https://openrouter.ai/api/v1/chat/completions",
                     headers=headers,
@@ -217,7 +231,6 @@ if submit_btn and user_input.strip():
                     timeout=30
                 )
                 
-                # Check response status
                 if response.status_code == 200:
                     result = response.json()
                     if "choices" in result and len(result["choices"]) > 0:
@@ -244,7 +257,7 @@ if reset_btn:
     st.session_state.chat_response = ""
     st.rerun()
 
-# Text Field 2: Multi-line Result Display - White header
+# Text Field 2: Multi-line Result Display - WHITE HEADER
 st.markdown('<p class="section-header">📖 Retrieved Academic Response</p>', unsafe_allow_html=True)
 st.text_area(
     "Answer will appear here:",
