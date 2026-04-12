@@ -60,7 +60,7 @@ if "chat_response" not in st.session_state:
 # Title
 st.title("⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot")
 
-# 10 Random Suggestion Prompts (Curriculum Aligned)
+# 10 Random Suggestion Prompts from Knowledge Base (UNIT 1 & 2)
 PROMPT_POOL = [
     "Explain Newton's First Law of Motion with real-life examples.",
     "What is the difference between mass and weight? Provide formulas.",
@@ -80,14 +80,16 @@ PROMPT_POOL = [
 ]
 
 st.markdown("### 💡 Suggested Academic Prompts")
-cols = st.columns(2)
-# Select 10 random prompts
-selected_prompts = random.sample(PROMPT_POOL, 10)
 
+# Display 10 random prompts in 2 columns
+selected_prompts = random.sample(PROMPT_POOL, min(10, len(PROMPT_POOL)))
+
+cols = st.columns(2)
 for i, prompt in enumerate(selected_prompts):
     col_idx = i % 2
     with cols[col_idx]:
-        if st.markdown(f'<div class="suggestion-item" onclick="document.querySelector(\'textarea\').value=\'{prompt.replace(\"\'\", \"\\\'\")}\';">{prompt}</div>', unsafe_allow_html=True):
+        # Use session state to store selected prompt
+        if st.button(prompt, key=f"prompt_{i}", use_container_width=True):
             st.session_state.user_query = prompt
             st.session_state.chat_response = ""
             st.rerun()
