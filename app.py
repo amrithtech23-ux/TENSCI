@@ -123,6 +123,104 @@ if "tamil_translation" not in st.session_state:
 if "topics_list" not in st.session_state:
     st.session_state.topics_list = []
 
+# Tamil Scientific Vocabulary - TN State Board Standard Terms
+TAMIL_SCIENCE_VOCAB = {
+    # Physics Terms
+    "diffusion": "பரவல்",
+    "concentration": "செறிவு",
+    "particle": "துகள்",
+    "movement": "இயக்கம்",
+    "uniform": "ஒருபடித்தான",
+    "medium": "ஊடகம்",
+    "flux": "பாயம்",
+    "coefficient": "குணகம்",
+    "gradient": "சரிவு",
+    "distance": "தூரம்",
+    "area": "பரப்பு",
+    "time": "நேரம்",
+    "formula": "வாய்பாடு",
+    "definition": "வரைவிலக்கணம்",
+    "concept": "கருத்து",
+    "process": "செயல்முறை",
+    "rate": "வீதம்",
+    "force": "விசை",
+    "motion": "இயக்கம்",
+    "velocity": "திசைவேகம்",
+    "acceleration": "முடுக்கம்",
+    "mass": "நிறை",
+    "energy": "ஆற்றல்",
+    "work": "வேலை",
+    "power": "திறன்",
+    "pressure": "அழுத்தம்",
+    "temperature": "வெப்பநிலை",
+    "heat": "வெப்பம்",
+    "light": "ஒளி",
+    "sound": "ஒலி",
+    "current": "மின்னோட்டம்",
+    "voltage": "மின்னழுத்தம்",
+    "resistance": "மின்தடை",
+    "circuit": "மின்சுற்று",
+    
+    # Chemistry Terms
+    "atom": "அணு",
+    "molecule": "மூலக்கூறு",
+    "element": "தனிமம்",
+    "compound": "சேர்மம்",
+    "reaction": "வினை",
+    "solution": "கரைசல்",
+    "acid": "அமிலம்",
+    "base": "காரம்",
+    "salt": "உப்பு",
+    "ion": "அயனி",
+    "electron": "எலக்ட்ரான்",
+    "proton": "புரோட்டான்",
+    "neutron": "நியூட்ரான்",
+    "bond": "பிணைப்பு",
+    "valency": "இணைதிறன்",
+    "atomic number": "அணு எண்",
+    "mass number": "நிறை எண்",
+    "isotope": "ஐசோடோப்பு",
+    "periodic table": "தனிம வரிசை அட்டவணை",
+    
+    # Biology Terms
+    "cell": "உயிரணு",
+    "tissue": "திசு",
+    "organ": "உறுப்பு",
+    "system": "மண்டலம்",
+    "plant": "தாவரம்",
+    "animal": "விலங்கு",
+    "photosynthesis": "ஒளிச்சேர்க்கை",
+    "respiration": "சுவாசம்",
+    "digestion": "செரிமானம்",
+    "circulation": "சுற்றோட்டம்",
+    "reproduction": "இனப்பெருக்கம்",
+    "gene": "மரபணு",
+    "chromosome": "நிறப்புரி",
+    "DNA": "டி.என்.ஏ",
+    "evolution": "பரிணாமம்",
+    "species": "சிற்றினம்",
+    
+    # Common Academic Terms
+    "introduction": "அறிமுகம்",
+    "explanation": "விளக்கம்",
+    "example": "எடுத்துக்காட்டு",
+    "application": "பயன்பாடு",
+    "important": "முக்கியமான",
+    "note": "குறிப்பு",
+    "key": "முக்கிய",
+    "point": "புள்ளி",
+    "section": "பிரிவு",
+    "chapter": "அத்தியாயம்",
+    "unit": "அலகு",
+    "law": "விதி",
+    "principle": "கொள்கை",
+    "theory": "கோட்பாடு",
+    "experiment": "சோதனை",
+    "observation": "கவனிப்பு",
+    "conclusion": "முடிவு",
+    "summary": "சுருக்கம்"
+}
+
 # Function to load and parse AllTopic.txt
 @st.cache_data
 def load_topics():
@@ -349,15 +447,18 @@ if submit_btn and user_input.strip():
         st.session_state.tamil_translation = ""  # Clear previous translation
         st.rerun()
 
-# Translation Handling
+# Translation Handling with Tamil Scientific Vocabulary
 if translate_btn and st.session_state.chat_response:
-    with st.spinner("🌐 Translating to Tamil... This may take a moment for complete translation."):
+    with st.spinner("🌐 Translating to Tamil with TN State Board vocabulary..."):
         try:
             api_key = st.secrets.get("OPENROUTER_API_KEY")
             
             if not api_key:
                 st.session_state.tamil_translation = "⚠️ Translation API key not found."
             else:
+                # Build vocabulary instruction
+                vocab_list = "\n".join([f"- {eng}: {tam}" for eng, tam in list(TAMIL_SCIENCE_VOCAB.items())[:30]])
+                
                 headers = {
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
@@ -370,25 +471,32 @@ if translate_btn and st.session_state.chat_response:
                     "messages": [
                         {
                             "role": "system",
-                            "content": """You are a professional Tamil translator specializing in science education. 
-Translate the following science content from English to simple, clear Tamil suitable for 10th standard Tamil medium students in Tamil Nadu State Board.
+                            "content": f"""You are a professional Tamil translator specializing in Tamil Nadu State Board 10th standard science education.
 
-IMPORTANT INSTRUCTIONS:
-1. Translate EVERYTHING completely - definitions, formulas, examples, applications, all sections
-2. Keep scientific terms and formulas in English but add Tamil explanation in brackets
-3. Use simple Tamil sentences that students can easily understand
-4. Maintain all technical accuracy
-5. Translate section headings, bullet points, numbered lists completely
-6. DO NOT skip any content - translate the entire text
-7. Use proper Tamil grammar and vocabulary appropriate for 10th standard students
-8. For mathematical formulas, keep them as is but explain in Tamil"""
+CRITICAL REQUIREMENTS:
+1. Use ONLY Tamil Nadu State Board approved scientific terminology
+2. Translate EVERYTHING completely - definitions, formulas, examples, all sections
+3. Keep formulas and equations in English/symbols but explain in Tamil
+4. Use simple, clear Tamil sentences suitable for Tamil medium students
+5. Maintain technical accuracy with official TN State Board vocabulary
+6. DO NOT skip any content - translate the entire text word by word
+7. Use proper Tamil grammar appropriate for 10th standard level
+
+STANDARD TAMIL SCIENTIFIC VOCABULARY (Use these terms):
+{vocab_list}
+... and more terms from TN State Board textbook
+
+For terms not in the list, use commonly accepted Tamil scientific terms from TN State Board textbooks.
+
+Translate section headings, bullet points, numbered lists completely.
+Keep mathematical symbols and formulas as is but provide Tamil explanation."""
                         },
                         {
                             "role": "user",
-                            "content": f"Translate this COMPLETELY to Tamil for 10th standard Tamil medium students. Translate every word, every section, every example:\n\n{st.session_state.chat_response}"
+                            "content": f"Translate this science content to Tamil using TN State Board 10th standard vocabulary. Translate EVERY word, section, and example:\n\n{st.session_state.chat_response}"
                         }
                     ],
-                    "temperature": 0.7,
+                    "temperature": 0.6,
                     "max_tokens": 4000
                 }
                 
@@ -457,7 +565,7 @@ if st.session_state.chat_response:
         else:
             st.text_area(
                 "Tamil Translation:",
-                value="🔄 Click 'Translate to Tamil' button above to get complete Tamil translation for 10th standard Tamil medium students.\n\nThe translation will include:\n- Complete definitions\n- All formulas with explanations\n- Real-life applications\n- Examples\n- All sections and points\n\nPlease wait a moment for the complete translation.",
+                value="🔄 Click 'Translate to Tamil' button above to get complete Tamil translation using TN State Board 10th standard scientific vocabulary.\n\nThe translation will include:\n- Complete definitions with official Tamil terms\n- All formulas with Tamil explanations\n- Real-life applications\n- Examples\n- All sections and points\n\nPlease wait a moment for the complete translation.",
                 height=500,
                 disabled=True,
                 label_visibility="collapsed",
@@ -468,6 +576,7 @@ if st.session_state.chat_response:
 st.divider()
 st.markdown(f"""
 <div style='text-align: center; color: #6b7280; font-size: 0.9rem;'>
-📚 Knowledge Base: {len(st.session_state.topics_list)} topics loaded from AllTopic.txt
+📚 Knowledge Base: {len(st.session_state.topics_list)} topics loaded from AllTopic.txt<br>
+🔤 Tamil Scientific Vocabulary: {len(TAMIL_SCIENCE_VOCAB)} standard terms loaded
 </div>
 """, unsafe_allow_html=True)
