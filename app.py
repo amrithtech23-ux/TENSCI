@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import random
+import json
 
 # Page Configuration
 st.set_page_config(
@@ -45,9 +46,26 @@ st.markdown("""
     border-radius: 6px;
 }
 
-/* Header & Title */
-h1 { font-weight: bold; }
+/* Header & Title - Make ALL headers white */
+h1, h2, h3, h4, h5, h6 {
+    font-weight: bold;
+    color: #ffffff !important;
+}
+
+/* Specific styling for section headers */
+.section-header {
+    color: #ffffff !important;
+    font-weight: bold;
+    font-size: 1.5rem;
+    margin-bottom: 10px;
+}
+
 .stDivider { margin-top: 10px; margin-bottom: 10px; }
+
+/* Fix for markdown elements */
+div[data-testid="stMarkdown"] h3 {
+    color: #ffffff !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -79,7 +97,8 @@ PROMPT_POOL = [
     "List the characteristics of gravitational force."
 ]
 
-st.markdown("### 💡 Suggested Academic Prompts")
+# Display section header in white
+st.markdown('<p class="section-header">💡 Suggested Academic Prompts</p>', unsafe_allow_html=True)
 
 # Display 10 random prompts in 2 columns
 selected_prompts = random.sample(PROMPT_POOL, min(10, len(PROMPT_POOL)))
@@ -88,7 +107,6 @@ cols = st.columns(2)
 for i, prompt in enumerate(selected_prompts):
     col_idx = i % 2
     with cols[col_idx]:
-        # Use session state to store selected prompt
         if st.button(prompt, key=f"prompt_{i}", use_container_width=True):
             st.session_state.user_query = prompt
             st.session_state.chat_response = ""
@@ -96,8 +114,8 @@ for i, prompt in enumerate(selected_prompts):
 
 st.divider()
 
-# Text Field 1: User Input
-st.markdown("### 📝 Enter Your Query")
+# Text Field 1: User Input - Display header in white
+st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
 user_input = st.text_area(
     "Type your science question here...",
     value=st.session_state.user_query,
@@ -117,41 +135,74 @@ with col2:
 if submit_btn and user_input.strip():
     with st.spinner("🔍 Retrieving academic response..."):
         try:
-            api_key = st.secrets["OPENROUTER_API_KEY"]
-            headers = {
-                "Authorization": f"Bearer {api_key}",
-                "HTTP-Referer": "https://github.com/TENSCI",
-                "X-Title": "TENSCI Chatbot"
-            }
-            payload = {
-                "model": "qwen/qwen2.5-72b-instruct",
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": (
-                            "You are an academic science tutor for 10th Standard Tamil Nadu State Board students. "
-                            "Provide clear, accurate, and curriculum-aligned answers. Use formal academic language. "
-                            "Structure responses with definitions, formulas, examples, and real-life applications. "
-                            "Keep explanations concise, educational, and strictly focused on the TN State Board syllabus (Laws of Motion, Optics, etc.)."
-                        )
-                    },
-                    {"role": "user", "content": user_input}
-                ],
-                "temperature": 0.6
-            }
-            response = requests.post("https://openrouter.ai/api/v1/chat/completions", json=payload, headers=headers)
-            response.raise_for_status()
-            st.session_state.chat_response = response.json()["choices"][0]["message"]["content"]
+            # Get API key from secrets
+            api_key = st.secrets.get("OPENROUTER_API_KEY")
+            
+            if not api_key:
+                st.session_state.chat_response = "⚠️ Configuration Error: OPENROUTER_API_KEY not found in secrets.toml. Please add your API key."
+            else:
+                # Prepare headers
+                headers = {
+                    "Authorization": f"Bearer {api_key}",
+                    "Content-Type": "application/json",
+                    "HTTP-Referer": "https://github.com/TENSCI",
+                    "X-Title": "TENSCI Chatbot"
+                }
+                
+                # Prepare payload with correct format
+                payload = {
+                    "model": "qwen/qwen-2.5-72b-instruct",
+                    "messages": [
+                        {
+                            "role": "system",
+                            "content": "You are an academic science tutor for 10th Standard Tamil Nadu State Board students. Provide clear, accurate, and curriculum-aligned answers. Use formal academic language. Structure responses with definitions, formulas, examples, and real-life applications. Keep explanations concise, educational, and strictly focused on the TN State Board syllabus (Laws of Motion, Optics, etc.)."
+                        },
+                        {
+                            "role": "user",
+                            "content": user_input
+                        }
+                    ],
+                    "temperature": 0.6,
+                    "max_tokens": 1000
+                }
+                
+                # Make API request
+                response = requests.post(
+                    "https://openrouter.ai/api/v1/chat/completions",
+                    headers=headers,
+                    json=payload,
+                    timeout=30
+                )
+                
+                # Check response status
+                if response.status_code == 200:
+                    result = response.json()
+                    if "choices" in result and len(result["choices"]) > 0:
+                        st.session_state.chat_response = result["choices"][0]["message"]["content"]
+                    else:
+                        st.session_state.chat_response = "⚠️ Error: Invalid response format from API."
+                elif response.status_code == 401:
+                    st.session_state.chat_response = "⚠️ Authentication Error: Invalid API key. Please verify your OPENROUTER_API_KEY."
+                elif response.status_code == 400:
+                    error_detail = response.json().get("error", {}).get("message", "Unknown error")
+                    st.session_state.chat_response = f"⚠️ Bad Request: {error_detail}\n\nPlease check:\n1. API key is valid\n2. Model name is correct\n3. Request format is proper"
+                else:
+                    st.session_state.chat_response = f"⚠️ API Error {response.status_code}: {response.text}"
+                    
+        except requests.exceptions.Timeout:
+            st.session_state.chat_response = "⚠️ Request Timeout: The API took too long to respond. Please try again."
+        except requests.exceptions.ConnectionError:
+            st.session_state.chat_response = "⚠️ Connection Error: Unable to connect to the API. Check your internet connection."
         except Exception as e:
-            st.session_state.chat_response = f"⚠️ API Error: {str(e)}\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
+            st.session_state.chat_response = f"⚠️ Unexpected Error: {str(e)}\n\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
 
 if reset_btn:
     st.session_state.user_query = ""
     st.session_state.chat_response = ""
     st.rerun()
 
-# Text Field 2: Multi-line Result Display
-st.markdown("### 📖 Retrieved Academic Response")
+# Text Field 2: Multi-line Result Display - Display header in white
+st.markdown('<p class="section-header">📖 Retrieved Academic Response</p>', unsafe_allow_html=True)
 st.text_area(
     "Answer will appear here:",
     value=st.session_state.chat_response,
