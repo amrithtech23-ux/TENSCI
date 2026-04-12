@@ -81,7 +81,7 @@ div[data-testid="stMarkdown"] h6 {
 
 /* Override Streamlit default styles */
 .css-1d391kg, .css-1lcbmhc, .css-16idsys {
-    color: #ffffff !important;
+    color: Red !important;
 }
 
 .stDivider { 
