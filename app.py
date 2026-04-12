@@ -1,4 +1,4 @@
- # app.py
+# app.py
 import streamlit as st
 import requests
 import random
@@ -133,10 +133,8 @@ if "tamil_translation" not in st.session_state:
     st.session_state.tamil_translation = ""
 if "topics_list" not in st.session_state:
     st.session_state.topics_list = []
-if "last_submitted_query" not in st.session_state:
-    st.session_state.last_submitted_query = ""
-if "search_triggered" not in st.session_state:
-    st.session_state.search_triggered = False
+if "last_search_query" not in st.session_state:
+    st.session_state.last_search_query = ""
 
 # ============================================================================
 # TAMIL SCIENTIFIC VOCABULARY - TN STATE BOARD STANDARD TERMS
@@ -458,8 +456,7 @@ for i, prompt in enumerate(suggestions):
                 st.session_state.user_query = prompt
                 st.session_state.chat_response = ""
                 st.session_state.tamil_translation = ""
-                st.session_state.last_submitted_query = ""
-                st.session_state.search_triggered = False
+                st.session_state.last_search_query = ""
                 st.rerun()
         with col_btn2:
             if st.button("📋", key=f"copy_{i}", help="Copy to clipboard"):
@@ -578,24 +575,22 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
         return f"⚠️ Unexpected Error: {str(e)}\n\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
 
 # ============================================================================
-# API CALL & RESPONSE HANDLING - AUTO RESET ON NEW SEARCH
+# API CALL & RESPONSE HANDLING - SIMPLIFIED AUTO-RESET
 # ============================================================================
 if submit_btn and user_input.strip():
     current_query = user_input.strip()
-    last_query = st.session_state.get('last_submitted_query', '')
+    last_query = st.session_state.get('last_search_query', '')
     
     # Always perform search if query is different from last submitted query
-    # OR if search hasn't been triggered yet
-    if current_query != last_query or not st.session_state.get('search_triggered', False):
+    if current_query != last_query:
         with st.spinner("🔍 Searching topics and retrieving academic response..."):
-            # Auto-reset: Clear previous results for new query
+            # Clear previous results for new query (auto-reset)
             st.session_state.chat_response = ""
             st.session_state.tamil_translation = ""
             
             # Update session state
             st.session_state.user_query = current_query
-            st.session_state.last_submitted_query = current_query
-            st.session_state.search_triggered = True
+            st.session_state.last_search_query = current_query
             
             # Perform search
             st.session_state.chat_response = get_response_from_topics(current_query, st.session_state.topics_list)
@@ -646,8 +641,7 @@ if reset_btn:
     st.session_state.user_query = ""
     st.session_state.chat_response = ""
     st.session_state.tamil_translation = ""
-    st.session_state.last_submitted_query = ""
-    st.session_state.search_triggered = False
+    st.session_state.last_search_query = ""
     st.rerun()
 
 # ============================================================================
