@@ -6,7 +6,7 @@ import random
 st.set_page_config(
     page_title="TENSCI Chatbot",
     page_icon="⚖️",
-    layout="wide"  # Changed to wide for side-by-side layout
+    layout="wide"
 )
 
 # Custom CSS for Exact Styling Requirements
@@ -120,7 +120,7 @@ if "chat_response" not in st.session_state:
 if "tamil_translation" not in st.session_state:
     st.session_state.tamil_translation = ""
 
-# Title - Using markdown with custom class for Blue color
+# Title
 st.markdown('<h1 class="main-header">⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot</h1>', unsafe_allow_html=True)
 
 # 10 Random Suggestion Prompts from Knowledge Base (UNIT 1 & 2)
@@ -152,14 +152,12 @@ cols = st.columns(2)
 for i, prompt in enumerate(selected_prompts):
     col_idx = i % 2
     with cols[col_idx]:
-        # Create a container for prompt and copy button
         st.markdown(f"""
         <div class="suggestion-container">
             <div class="suggestion-text">{prompt}</div>
         </div>
         """, unsafe_allow_html=True)
         
-        # Copy button for each prompt
         col_btn1, col_btn2 = st.columns([3, 1])
         with col_btn1:
             if st.button("Use Prompt", key=f"use_{i}", use_container_width=True):
@@ -174,7 +172,7 @@ for i, prompt in enumerate(selected_prompts):
 
 st.divider()
 
-# Text Field 1: User Input - GREEN header, BLUE background with WHITE text
+# Text Field 1: User Input
 st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
 user_input = st.text_area(
     "Type your science question here...",
@@ -221,14 +219,14 @@ def get_english_response(query):
                 }
             ],
             "temperature": 0.6,
-            "max_tokens": 1000
+            "max_tokens": 2000
         }
         
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers=headers,
             json=payload,
-            timeout=30
+            timeout=45
         )
         
         if response.status_code == 200:
@@ -252,7 +250,7 @@ def get_english_response(query):
     except Exception as e:
         return f"⚠️ Unexpected Error: {str(e)}\n\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
 
-# Function to translate to Tamil
+# Function to translate to Tamil - COMPLETE TRANSLATION
 def translate_to_tamil(text):
     try:
         api_key = st.secrets.get("OPENROUTER_API_KEY")
@@ -260,6 +258,29 @@ def translate_to_tamil(text):
         if not api_key:
             return "⚠️ Translation API key not found."
         
+        # Check text length and split if necessary
+        max_chunk_size = 2000  # Characters per chunk
+        
+        if len(text) <= max_chunk_size:
+            # Single translation for short text
+            return translate_chunk(text, api_key)
+        else:
+            # Chunk-based translation for long text
+            chunks = [text[i:i+max_chunk_size] for i in range(0, len(text), max_chunk_size)]
+            translated_chunks = []
+            
+            for i, chunk in enumerate(chunks):
+                translated_chunk = translate_chunk(chunk, api_key)
+                translated_chunks.append(translated_chunk)
+            
+            return "\n\n".join(translated_chunks)
+            
+    except Exception as e:
+        return f"⚠️ Translation Error: {str(e)}"
+
+def translate_chunk(text_chunk, api_key):
+    """Translate a single chunk of text to Tamil"""
+    try:
         headers = {
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
@@ -272,35 +293,47 @@ def translate_to_tamil(text):
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are a professional translator. Translate the following science content from English to simple, clear Tamil suitable for 10th standard Tamil medium students. Keep scientific terms in English with Tamil explanation where needed. Maintain formulas and technical accuracy. Use simple Tamil sentences that students can easily understand."
+                    "content": """You are a professional Tamil translator specializing in science education. 
+Translate the following science content from English to simple, clear Tamil suitable for 10th standard Tamil medium students in Tamil Nadu State Board.
+
+IMPORTANT INSTRUCTIONS:
+1. Translate EVERYTHING completely - definitions, formulas, examples, applications, all sections
+2. Keep scientific terms and formulas in English but add Tamil explanation in brackets
+3. Use simple Tamil sentences that students can easily understand
+4. Maintain all technical accuracy
+5. Translate section headings, bullet points, numbered lists completely
+6. DO NOT skip any content - translate the entire text
+7. Use proper Tamil grammar and vocabulary appropriate for 10th standard students
+8. For mathematical formulas, keep them as is but explain in Tamil"""
                 },
                 {
                     "role": "user",
-                    "content": f"Translate this to Tamil for 10th standard students:\n\n{text}"
+                    "content": f"Translate this COMPLETELY to Tamil for 10th standard Tamil medium students. Translate every word, every section, every example:\n\n{text_chunk}"
                 }
             ],
             "temperature": 0.7,
-            "max_tokens": 1500
+            "max_tokens": 4000  # Increased for complete translation
         }
         
         response = requests.post(
             "https://openrouter.ai/api/v1/chat/completions",
             headers=headers,
             json=payload,
-            timeout=45
+            timeout=60  # Increased timeout
         )
         
         if response.status_code == 200:
             result = response.json()
             if "choices" in result and len(result["choices"]) > 0:
-                return result["choices"][0]["message"]["content"]
+                translation = result["choices"][0]["message"]["content"]
+                return translation
             else:
                 return "⚠️ Translation error: Invalid response format."
         else:
             return f"⚠️ Translation Error {response.status_code}: {response.text}"
             
     except Exception as e:
-        return f"⚠️ Translation Error: {str(e)}"
+        return f"⚠️ Translation chunk error: {str(e)}"
 
 # API Call & Response Handling
 if submit_btn and user_input.strip():
@@ -311,7 +344,7 @@ if submit_btn and user_input.strip():
 
 # Translation Handling
 if translate_btn and st.session_state.chat_response:
-    with st.spinner("🌐 Translating to Tamil..."):
+    with st.spinner("🌐 Translating to Tamil... This may take a moment for complete translation."):
         st.session_state.tamil_translation = translate_to_tamil(st.session_state.chat_response)
         st.rerun()
 
@@ -333,7 +366,7 @@ if st.session_state.chat_response:
         st.text_area(
             "English Response:",
             value=st.session_state.chat_response,
-            height=400,
+            height=500,
             disabled=True,
             label_visibility="collapsed",
             key="english_response"
@@ -348,7 +381,7 @@ if st.session_state.chat_response:
             st.text_area(
                 "Tamil Translation:",
                 value=st.session_state.tamil_translation,
-                height=400,
+                height=500,
                 disabled=True,
                 label_visibility="collapsed",
                 key="tamil_response"
@@ -359,8 +392,8 @@ if st.session_state.chat_response:
         else:
             st.text_area(
                 "Tamil Translation:",
-                value="Click 'Translate to Tamil' button to get Tamil translation for 10th standard students",
-                height=400,
+                value="🔄 Click 'Translate to Tamil' button above to get complete Tamil translation for 10th standard Tamil medium students.\n\nThe translation will include:\n- Complete definitions\n- All formulas with explanations\n- Real-life applications\n- Examples\n- All sections and points\n\nPlease wait a moment for the complete translation.",
+                height=500,
                 disabled=True,
                 label_visibility="collapsed",
                 key="tamil_placeholder"
