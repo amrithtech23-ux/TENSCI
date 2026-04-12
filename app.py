@@ -323,12 +323,8 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
             if "choices" in result and len(result["choices"]) > 0:
                 content = result["choices"][0]["message"]["content"]
                 
-                # Add relevant topics found info
-                topics_found = f"📚 **Relevant Topics Found ({len(relevant)}):**\n"
-                for r in relevant[:5]:  # Show top 5
-                    topics_found += f"• Topic {r['topic']['number']}: {r['topic']['text']}\n"
-                
-                return f"{topics_found}\n\n{content}"
+                # Return ONLY the content - NO "Relevant Topics Found" section
+                return content
             else:
                 return "⚠️ Error: Invalid response format from API."
         elif response.status_code == 401:
