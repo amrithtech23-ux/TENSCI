@@ -14,7 +14,7 @@ st.markdown("""
 <style>
 /* Main title in white */
 .main-header {
-    color: #ffffff !important;
+    color: Blue !important;
     font-weight: bold !important;
     font-size: 2rem !important;
     text-align: center !important;
@@ -34,7 +34,7 @@ st.markdown("""
 
 /* Section headers in white */
 .section-header {
-    color: #ffffff !important;
+    color: Blue !important;
     font-weight: bold !important;
     font-size: 1.4rem !important;
     margin: 1rem 0 !important;
