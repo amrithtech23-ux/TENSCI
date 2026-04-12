@@ -135,6 +135,8 @@ if "topics_list" not in st.session_state:
     st.session_state.topics_list = []
 if "search_counter" not in st.session_state:
     st.session_state.search_counter = 0
+if "last_search_query" not in st.session_state:
+    st.session_state.last_search_query = ""
 
 # ============================================================================
 # TAMIL SCIENTIFIC VOCABULARY - TN STATE BOARD STANDARD TERMS
@@ -447,6 +449,7 @@ for i, prompt in enumerate(suggestions):
                 st.session_state.user_query = prompt
                 st.session_state.chat_response = ""
                 st.session_state.tamil_translation = ""
+                st.session_state.last_search_query = prompt
                 st.session_state.search_counter += 1
                 st.rerun()
         with col_btn2:
@@ -570,21 +573,23 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
 # ============================================================================
 if submit_btn and user_input.strip():
     current_query = user_input.strip()
-    current_counter = st.session_state.get('search_counter', 0)
+    last_query = st.session_state.get('last_search_query', '')
     
-    # Always perform search (auto-reset on every new submit click)
-    with st.spinner("🔍 Searching topics and retrieving academic response..."):
-        # Clear previous results for new query (auto-reset)
-        st.session_state.chat_response = ""
-        st.session_state.tamil_translation = ""
-        
-        # Update session state
-        st.session_state.user_query = current_query
-        st.session_state.search_counter += 1
-        
-        # Perform search
-        st.session_state.chat_response = get_response_from_topics(current_query, st.session_state.topics_list)
-        st.rerun()
+    # Always perform search if query is different from last submitted query
+    if current_query != last_query:
+        with st.spinner("🔍 Searching topics and retrieving academic response..."):
+            # Clear previous results for new query (auto-reset)
+            st.session_state.chat_response = ""
+            st.session_state.tamil_translation = ""
+            
+            # Update session state
+            st.session_state.user_query = current_query
+            st.session_state.last_search_query = current_query
+            st.session_state.search_counter += 1
+            
+            # Perform search
+            st.session_state.chat_response = get_response_from_topics(current_query, st.session_state.topics_list)
+            st.rerun()
 
 # ============================================================================
 # 🔁 TRANSLATION HANDLING WITH GOOGLE TRANSLATE + VOCABULARY ENHANCEMENT
@@ -631,6 +636,7 @@ if reset_btn:
     st.session_state.user_query = ""
     st.session_state.chat_response = ""
     st.session_state.tamil_translation = ""
+    st.session_state.last_search_query = ""
     st.session_state.search_counter = 0
     st.rerun()
 
@@ -673,6 +679,7 @@ if st.session_state.chat_response:
         else:
             st.text_area(
                 "Tamil Translation:",
+                value="🔄 மேலே உள்ள 'Translate to Tamil' பொத்தானைச் சொடுக்கி, தமிழ்நாடு அரசுப் பாடத்திட்ட 10-ஆம் வகுப்பு அறிவியல் சொற்களைப் பயன்படுத்தி முழுமையான
                 value="🔄 மேலே உள்ள 'Translate to Tamil' பொத்தானைச் சொடுக்கி, தமிழ்நாடு அரசுப் பாடத்திட்ட 10-ஆம் வகுப்பு அறிவியல் சொற்களைப் பயன்படுத்தி முழுமையான தமிழாக்கத்தைப் பெறவும்.\n\nமொழிபெயர்ப்பில் இவை அடங்கும்:\n- அதிகாரப்பூர்வ தமிழ்ச் சொற்களுடன் முழுமையான வரைவிலக்கணங்கள்\n- தமிழ் விளக்கங்களுடன் அனைத்துச் சூத்திரங்களும்\n- நடைமுறைப் பயன்பாடுகள்\n- எடுத்துக்காட்டுகள்\n- அனைத்துப் பிரிவுகளும் புள்ளிகளும்\n\nமுழுமையான மொழிபெயர்ப்பிற்குச் சிறிது நேரம் காத்திருக்கவும்.",
                 height=500,
                 disabled=True,
@@ -691,4 +698,4 @@ st.markdown(f"""
 🌐 Translation: Google Translate + TN State Board vocabulary enhancement<br>
 🔍 Search: Exact phrase matching + all-words-required + auto-reset enabled
 </div>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True)                
