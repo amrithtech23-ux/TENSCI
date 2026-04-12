@@ -677,10 +677,21 @@ if st.session_state.chat_response:
                 st.code(st.session_state.tamil_translation, language=None)
                 st.success("Tamil response copied! Press Ctrl+C to copy")
         else:
+            # Tamil placeholder text - FIXED: Using triple quotes for multi-line string
+            tamil_placeholder_text = """🔄 மேலே உள்ள 'Translate to Tamil' பொத்தானைச் சொடுக்கி, தமிழ்நாடு அரசுப் பாடத்திட்ட 10-ஆம் வகுப்பு அறிவியல் சொற்களைப் பயன்படுத்தி முழுமையான தமிழாக்கத்தைப் பெறவும்.
+
+மொழிபெயர்ப்பில் இவை அடங்கும்:
+- அதிகாரப்பூர்வ தமிழ்ச் சொற்களுடன் முழுமையான வரைவிலக்கணங்கள்
+- தமிழ் விளக்கங்களுடன் அனைத்துச் சூத்திரங்களும்
+- நடைமுறைப் பயன்பாடுகள்
+- எடுத்துக்காட்டுகள்
+- அனைத்துப் பிரிவுகளும் புள்ளிகளும்
+
+முழுமையான மொழிபெயர்ப்பிற்குச் சிறிது நேரம் காத்திருக்கவும்."""
+            
             st.text_area(
                 "Tamil Translation:",
-                value="🔄 மேலே உள்ள 'Translate to Tamil' பொத்தானைச் சொடுக்கி, தமிழ்நாடு அரசுப் பாடத்திட்ட 10-ஆம் வகுப்பு அறிவியல் சொற்களைப் பயன்படுத்தி முழுமையான
-                value="🔄 மேலே உள்ள 'Translate to Tamil' பொத்தானைச் சொடுக்கி, தமிழ்நாடு அரசுப் பாடத்திட்ட 10-ஆம் வகுப்பு அறிவியல் சொற்களைப் பயன்படுத்தி முழுமையான தமிழாக்கத்தைப் பெறவும்.\n\nமொழிபெயர்ப்பில் இவை அடங்கும்:\n- அதிகாரப்பூர்வ தமிழ்ச் சொற்களுடன் முழுமையான வரைவிலக்கணங்கள்\n- தமிழ் விளக்கங்களுடன் அனைத்துச் சூத்திரங்களும்\n- நடைமுறைப் பயன்பாடுகள்\n- எடுத்துக்காட்டுகள்\n- அனைத்துப் பிரிவுகளும் புள்ளிகளும்\n\nமுழுமையான மொழிபெயர்ப்பிற்குச் சிறிது நேரம் காத்திருக்கவும்.",
+                value=tamil_placeholder_text,
                 height=500,
                 disabled=True,
                 label_visibility="collapsed",
@@ -698,4 +709,4 @@ st.markdown(f"""
 🌐 Translation: Google Translate + TN State Board vocabulary enhancement<br>
 🔍 Search: Exact phrase matching + all-words-required + auto-reset enabled
 </div>
-""", unsafe_allow_html=True)                
+""", unsafe_allow_html=True)
