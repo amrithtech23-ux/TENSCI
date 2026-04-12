@@ -12,7 +12,7 @@ st.set_page_config(
 # Custom CSS for Exact Styling Requirements
 st.markdown("""
 <style>
-/* Main title in BLUE */
+/* Main title in Blue */
 .main-header {
     color: #0056b3 !important;
     font-weight: bold !important;
@@ -21,33 +21,20 @@ st.markdown("""
     margin-bottom: 2rem !important;
 }
 
-/* INPUT Text Area - WHITE Background, BLACK Text (Ref1) */
-.stTextArea:nth-of-type(1) textarea,
-div[data-testid="stTextArea"]:nth-of-type(1) textarea {
-    border: 4px solid #000000 !important;
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    font-weight: bold !important;
-    font-size: 1.2rem !important;
-    border-radius: 8px !important;
-    line-height: 1.4 !important;
-}
-
-/* RESULT Text Area - BLUE Background, WHITE Text (Original Spec + User Request) */
-.stTextArea:nth-of-type(2) textarea,
-div[data-testid="stTextArea"]:nth-of-type(2) textarea {
+/* Bold Border & Blue Background for Input & Result Fields */
+.stTextArea textarea, div[data-testid="stTextArea"] textarea {
     border: 4px solid #000000 !important;
     background-color: #0056b3 !important;
-    color: #ffffff !important;
+    color: White !important;
     font-weight: bold !important;
     font-size: 1.2rem !important;
     border-radius: 8px !important;
     line-height: 1.4 !important;
 }
 
-/* Section headers in BLUE (Ref2) */
+/* Section headers in white */
 .section-header {
-    color: #0056b3 !important;
+    color: Blue !important;
     font-weight: bold !important;
     font-size: 1.4rem !important;
     margin: 1rem 0 !important;
@@ -69,6 +56,11 @@ div[data-testid="stTextArea"]:nth-of-type(2) textarea {
     margin-bottom: 8px !important;
 }
 
+.copy-button {
+    font-size: 0.85rem !important;
+    padding: 4px 8px !important;
+}
+
 /* Button Styling */
 .stButton > button {
     font-weight: bold;
@@ -76,7 +68,7 @@ div[data-testid="stTextArea"]:nth-of-type(2) textarea {
     border-radius: 6px;
 }
 
-/* Force ALL headers to BLUE */
+/* Force ALL text to white in headers */
 h1, h2, h3, h4, h5, h6, 
 div[data-testid="stMarkdown"] h1,
 div[data-testid="stMarkdown"] h2,
@@ -84,7 +76,12 @@ div[data-testid="stMarkdown"] h3,
 div[data-testid="stMarkdown"] h4,
 div[data-testid="stMarkdown"] h5,
 div[data-testid="stMarkdown"] h6 {
-    color: #0056b3 !important;
+    color: #ffffff !important;
+}
+
+/* Override Streamlit default styles */
+.css-1d391kg, .css-1lcbmhc, .css-16idsys {
+    color: Red !important;
 }
 
 .stDivider { 
@@ -92,9 +89,9 @@ div[data-testid="stMarkdown"] h6 {
     margin-bottom: 10px; 
 }
 
-/* Light background for the whole app */
+/* White background for the whole app */
 .main .block-container {
-    background-color: #ffffff;
+    background-color: Pink;
     padding: 2rem;
     border-radius: 10px;
 }
@@ -107,7 +104,7 @@ if "user_query" not in st.session_state:
 if "chat_response" not in st.session_state:
     st.session_state.chat_response = ""
 
-# Title - BLUE color
+# Title - Using markdown with custom class for white color
 st.markdown('<h1 class="main-header">⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot</h1>', unsafe_allow_html=True)
 
 # 10 Random Suggestion Prompts from Knowledge Base (UNIT 1 & 2)
@@ -129,7 +126,7 @@ PROMPT_POOL = [
     "List the characteristics of gravitational force."
 ]
 
-# Section Header - BLUE color
+# Section Header - White color
 st.markdown('<p class="section-header">💡 Suggested Academic Prompts</p>', unsafe_allow_html=True)
 
 # Display 10 random prompts in 2 columns with copy buttons
@@ -139,12 +136,14 @@ cols = st.columns(2)
 for i, prompt in enumerate(selected_prompts):
     col_idx = i % 2
     with cols[col_idx]:
+        # Create a container for prompt and copy button
         st.markdown(f"""
         <div class="suggestion-container">
             <div class="suggestion-text">{prompt}</div>
         </div>
         """, unsafe_allow_html=True)
         
+        # Copy button for each prompt
         col_btn1, col_btn2 = st.columns([3, 1])
         with col_btn1:
             if st.button("Use Prompt", key=f"use_{i}", use_container_width=True):
@@ -158,7 +157,7 @@ for i, prompt in enumerate(selected_prompts):
 
 st.divider()
 
-# Text Field 1: User Input - BLUE header, WHITE background text area
+# Text Field 1: User Input - White header
 st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
 user_input = st.text_area(
     "Type your science question here...",
@@ -179,11 +178,13 @@ with col2:
 if submit_btn and user_input.strip():
     with st.spinner("🔍 Retrieving academic response..."):
         try:
+            # Get API key from secrets
             api_key = st.secrets.get("OPENROUTER_API_KEY")
             
             if not api_key:
                 st.session_state.chat_response = "⚠️ Configuration Error: OPENROUTER_API_KEY not found in secrets.toml. Please add your API key."
             else:
+                # Prepare headers
                 headers = {
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
@@ -191,6 +192,7 @@ if submit_btn and user_input.strip():
                     "X-Title": "TENSCI Chatbot"
                 }
                 
+                # Prepare payload with correct format
                 payload = {
                     "model": "qwen/qwen-2.5-72b-instruct",
                     "messages": [
@@ -207,6 +209,7 @@ if submit_btn and user_input.strip():
                     "max_tokens": 1000
                 }
                 
+                # Make API request
                 response = requests.post(
                     "https://openrouter.ai/api/v1/chat/completions",
                     headers=headers,
@@ -214,6 +217,7 @@ if submit_btn and user_input.strip():
                     timeout=30
                 )
                 
+                # Check response status
                 if response.status_code == 200:
                     result = response.json()
                     if "choices" in result and len(result["choices"]) > 0:
@@ -240,15 +244,14 @@ if reset_btn:
     st.session_state.chat_response = ""
     st.rerun()
 
-# Text Field 2: Multi-line Result Display - BLUE header, BLUE background, WHITE text
+# Text Field 2: Multi-line Result Display - White header
 st.markdown('<p class="section-header">📖 Retrieved Academic Response</p>', unsafe_allow_html=True)
 st.text_area(
     "Answer will appear here:",
     value=st.session_state.chat_response,
     height=300,
     disabled=True,
-    label_visibility="collapsed",
-    key="result_output"
+    label_visibility="collapsed"
 )
 
 # Copy result button
