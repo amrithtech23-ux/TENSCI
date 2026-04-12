@@ -91,7 +91,7 @@ div[data-testid="stMarkdown"] h6 {
 
 /* White background for the whole app */
 .main .block-container {
-    background-color: #0056b3;
+    background-color: Pink;
     padding: 2rem;
     border-radius: 10px;
 }
