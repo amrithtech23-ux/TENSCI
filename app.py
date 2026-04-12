@@ -3,6 +3,7 @@ import streamlit as st
 import requests
 import random
 import re
+import time
 from deep_translator import GoogleTranslator
 
 # ============================================================================
@@ -251,7 +252,8 @@ def load_topics():
                 topics.append({
                     'number': topic_num,
                     'text': topic_text,
-                    'full': f"{topic_num}. {topic_text}"
+                    'full': f"{topic_num}. {topic_text}",
+                    'search_text': topic_text.lower()  # Pre-compute lowercase for faster case-insensitive search
                 })
         
         return topics
@@ -264,26 +266,94 @@ if not st.session_state.topics_list:
     st.session_state.topics_list = load_topics()
 
 # ============================================================================
-# FUNCTION TO SEARCH RELEVANT TOPICS
+# ✅ FIXED: FUNCTION TO SEARCH RELEVANT TOPICS
 # ============================================================================
 def search_topics(query, topics):
-    """Search for topics relevant to the user's query"""
+    """
+    Search for topics relevant to the user's query - IMPROVED VERSION
+    
+    Key Improvements:
+    ✅ Removed len(word) > 3 filter - Now "DNA" (3 chars) will be matched
+    ✅ Added stop words filtering - Removes common words like "explain", "through", "what"
+    ✅ Phrase matching boost - If query phrase exists in topic, gets +5 score
+    ✅ Key term overlap - Checks for partial word matches
+    ✅ Case-insensitive search throughout
+    ✅ Debug output - Prints matched topics to console for troubleshooting
+    """
     query_lower = query.lower()
     relevant_topics = []
     
+    # Stop words to filter out for better matching
+    stop_words = {
+        'explain', 'what', 'how', 'why', 'when', 'where', 'the', 'through', 
+        'about', 'define', 'describe', 'is', 'are', 'was', 'were', 'be', 
+        'been', 'being', 'have', 'has', 'had', 'do', 'does', 'did', 'will',
+        'would', 'could', 'should', 'may', 'might', 'can', 'a', 'an', 'and',
+        'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from'
+    }
+    
+    # Extract meaningful query words (remove stop words)
+    query_words = [word for word in query_lower.split() if word not in stop_words and len(word) >= 2]
+    
     for topic in topics:
-        topic_text_lower = topic['text'].lower()
-        query_words = query_lower.split()
-        match_count = sum(1 for word in query_words if word in topic_text_lower and len(word) > 3)
+        topic_search_text = topic['search_text']  # Already lowercase
+        topic_words = topic_search_text.split()
         
-        if match_count > 0:
+        # Method 1: Count exact word matches (including short words like DNA)
+        word_match_count = sum(1 for word in query_words if word in topic_search_text)
+        
+        # Method 2: Phrase/substring match boost (higher priority)
+        phrase_boost = 0
+        if query_lower in topic_search_text or topic_search_text in query_lower:
+            phrase_boost = 5  # Significant boost for phrase matches
+        
+        # Method 3: Key term overlap - partial word matching
+        key_term_boost = 0
+        for query_word in query_words:
+            if len(query_word) >= 3:  # Only for meaningful terms
+                # Check if query word is contained in any topic word or vice versa
+                for topic_word in topic_words:
+                    if query_word in topic_word or topic_word in query_word:
+                        key_term_boost += 1
+                        break  # Count each query word only once
+        
+        # Method 4: Bonus for multi-word query terms matching together
+        multi_word_bonus = 0
+        if len(query_words) >= 2:
+            # Check if multiple query words appear close together in topic
+            for i in range(len(query_words) - 1):
+                phrase = f"{query_words[i]} {query_words[i+1]}"
+                if phrase in topic_search_text:
+                    multi_word_bonus += 2
+        
+        # Calculate total relevance score
+        total_score = word_match_count + phrase_boost + key_term_boost + multi_word_bonus
+        
+        if total_score > 0:
             relevant_topics.append({
                 'topic': topic,
-                'score': match_count
+                'score': total_score,
+                'match_details': {
+                    'word_matches': word_match_count,
+                    'phrase_boost': phrase_boost,
+                    'key_term_boost': key_term_boost,
+                    'multi_word_bonus': multi_word_bonus
+                }
             })
     
-    relevant_topics.sort(key=lambda x: x['score'], reverse=True)
-    return relevant_topics[:10]
+    # Sort by score (highest first), then by topic number for consistency
+    relevant_topics.sort(key=lambda x: (-x['score'], int(x['topic']['number'])))
+    
+    # Debug output (visible in terminal/console, not in UI)
+    if relevant_topics and st.session_state.get('debug_mode', False):
+        print(f"\n🔍 Search Debug for query: '{query}'")
+        print(f"   Query words analyzed: {query_words}")
+        for i, rt in enumerate(relevant_topics[:5]):
+            details = rt['match_details']
+            print(f"   {i+1}. [Score: {rt['score']}] #{rt['topic']['number']}: {rt['topic']['text'][:70]}...")
+            print(f"      Details: word={details['word_matches']}, phrase={details['phrase_boost']}, key={details['key_term_boost']}, multi={details['multi_word_bonus']}")
+    
+    return relevant_topics[:10]  # Return top 10 most relevant topics
 
 # ============================================================================
 # TITLE & SUGGESTIONS
@@ -360,6 +430,14 @@ with col2:
 with col3:
     reset_btn = st.button("🔄 Reset", use_container_width=True)
 
+# Optional: Add debug mode toggle in sidebar
+with st.sidebar:
+    st.markdown("### ⚙️ Settings")
+    debug_mode = st.checkbox("Enable Search Debug Mode", value=False)
+    st.session_state.debug_mode = debug_mode
+    if debug_mode:
+        st.info("Debug mode enabled - check terminal for search details")
+
 # ============================================================================
 # FUNCTION TO GET RESPONSE FROM TOPICS & API
 # ============================================================================
@@ -369,8 +447,9 @@ def get_response_from_topics(query, topics):
         relevant = search_topics(query, topics)
         
         if not relevant:
-            return "⚠️ No relevant topics found in the knowledge base. Please try rephrasing your query.\n\nExample queries:\n- 'Explain electric current'\n- 'What is Ohm's Law?'\n- 'Explain Newton's laws'"
+            return "⚠️ No relevant topics found in the knowledge base. Please try rephrasing your query.\n\nExample queries:\n- 'Explain electric current'\n- 'What is Ohm's Law?'\n- 'Explain Newton's laws'\n- 'Life activity regulation through DNA'"
         
+        # Build context from relevant topics
         context_topics = "\n".join([f"{r['topic']['full']}" for r in relevant])
         
         api_key = st.secrets.get("OPENROUTER_API_KEY")
@@ -464,7 +543,6 @@ if translate_btn and st.session_state.chat_response:
             
             for chunk in chunks:
                 # Small delay to avoid rate limiting
-                import time
                 time.sleep(0.5)
                 translated = translator.translate(chunk)
                 translated_chunks.append(translated)
@@ -557,6 +635,7 @@ st.markdown(f"""
 <div style='text-align: center; color: #6b7280; font-size: 0.9rem;'>
 📚 Knowledge Base: {len(st.session_state.topics_list)} topics loaded from AllTopic.txt<br>
 🔤 Tamil Scientific Vocabulary: {len(TAMIL_SCIENCE_VOCAB)} standard terms loaded<br>
-🌐 Translation: Google Translate + TN State Board vocabulary enhancement
+🌐 Translation: Google Translate + TN State Board vocabulary enhancement<br>
+🔍 Search: Case-insensitive + DNA/short-word matching enabled
 </div>
 """, unsafe_allow_html=True)
