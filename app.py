@@ -133,6 +133,8 @@ if "tamil_translation" not in st.session_state:
     st.session_state.tamil_translation = ""
 if "topics_list" not in st.session_state:
     st.session_state.topics_list = []
+if "last_search_query" not in st.session_state:
+    st.session_state.last_search_query = ""
 
 # ============================================================================
 # TAMIL SCIENTIFIC VOCABULARY - TN STATE BOARD STANDARD TERMS
@@ -454,6 +456,7 @@ for i, prompt in enumerate(suggestions):
                 st.session_state.user_query = prompt
                 st.session_state.chat_response = ""
                 st.session_state.tamil_translation = ""
+                st.session_state.last_search_query = ""
                 st.rerun()
         with col_btn2:
             if st.button("📋", key=f"copy_{i}", help="Copy to clipboard"):
@@ -572,13 +575,19 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
         return f"⚠️ Unexpected Error: {str(e)}\n\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
 
 # ============================================================================
-# API CALL & RESPONSE HANDLING
+# API CALL & RESPONSE HANDLING - FIXED
 # ============================================================================
 if submit_btn and user_input.strip():
-    with st.spinner("🔍 Searching topics and retrieving academic response..."):
-        st.session_state.chat_response = get_response_from_topics(user_input, st.session_state.topics_list)
-        st.session_state.tamil_translation = ""
-        st.rerun()
+    # Check if this is a new query or the same as last search
+    if user_input.strip() != st.session_state.get('last_search_query', ''):
+        # New query - clear previous results and search
+        with st.spinner("🔍 Searching topics and retrieving academic response..."):
+            st.session_state.user_query = user_input.strip()  # Update session state
+            st.session_state.last_search_query = user_input.strip()  # Track last search
+            st.session_state.chat_response = get_response_from_topics(user_input, st.session_state.topics_list)
+            st.session_state.tamil_translation = ""  # Clear previous translation
+            st.rerun()
+    # If same query, don't re-search (prevents infinite loop)
 
 # ============================================================================
 # 🔁 TRANSLATION HANDLING WITH GOOGLE TRANSLATE + VOCABULARY ENHANCEMENT
@@ -625,6 +634,7 @@ if reset_btn:
     st.session_state.user_query = ""
     st.session_state.chat_response = ""
     st.session_state.tamil_translation = ""
+    st.session_state.last_search_query = ""
     st.rerun()
 
 # ============================================================================
