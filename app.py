@@ -21,8 +21,11 @@ st.markdown("""
     margin-bottom: 2rem !important;
 }
 
-/* Bold Border & Blue Background for Input & Result Fields */
-.stTextArea textarea, div[data-testid="stTextArea"] textarea {
+/* GLOBAL TEXT AREA STYLING - Blue Background, WHITE Text */
+.stTextArea textarea,
+div[data-testid="stTextArea"] textarea,
+textarea.stTextArea,
+.stTextArea > div > textarea {
     border: 4px solid #000000 !important;
     background-color: #0056b3 !important;
     color: #ffffff !important;
@@ -30,6 +33,12 @@ st.markdown("""
     font-size: 1.2rem !important;
     border-radius: 8px !important;
     line-height: 1.4 !important;
+}
+
+/* SPECIFIC FIX - Force white text in ALL textareas */
+textarea {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
 }
 
 /* Section headers in GREEN */
