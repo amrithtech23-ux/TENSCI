@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import random
-import json
 
 # Page Configuration
 st.set_page_config(
@@ -13,6 +12,15 @@ st.set_page_config(
 # Custom CSS for Exact Styling Requirements
 st.markdown("""
 <style>
+/* Main title in white */
+.main-header {
+    color: #ffffff !important;
+    font-weight: bold !important;
+    font-size: 2rem !important;
+    text-align: center !important;
+    margin-bottom: 2rem !important;
+}
+
 /* Bold Border & Blue Background for Input & Result Fields */
 .stTextArea textarea, div[data-testid="stTextArea"] textarea {
     border: 4px solid #000000 !important;
@@ -24,19 +32,33 @@ st.markdown("""
     line-height: 1.4 !important;
 }
 
-/* Suggestion Prompt Styling: Gray, Bold, Slightly Bigger */
-.suggestion-item {
-    color: #6b7280;
-    font-weight: bold;
-    font-size: 1.15rem;
-    cursor: pointer;
-    padding: 8px 12px;
-    margin: 4px 0;
-    border-radius: 6px;
-    transition: background 0.2s;
+/* Section headers in white */
+.section-header {
+    color: #ffffff !important;
+    font-weight: bold !important;
+    font-size: 1.4rem !important;
+    margin: 1rem 0 !important;
 }
-.suggestion-item:hover {
-    background-color: #f3f4f6;
+
+/* Suggestion Prompt Styling */
+.suggestion-container {
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 8px 0;
+}
+
+.suggestion-text {
+    color: #6b7280 !important;
+    font-weight: bold !important;
+    font-size: 1.1rem !important;
+    margin-bottom: 8px !important;
+}
+
+.copy-button {
+    font-size: 0.85rem !important;
+    padding: 4px 8px !important;
 }
 
 /* Button Styling */
@@ -46,25 +68,32 @@ st.markdown("""
     border-radius: 6px;
 }
 
-/* Header & Title - Make ALL headers white */
-h1, h2, h3, h4, h5, h6 {
-    font-weight: bold;
+/* Force ALL text to white in headers */
+h1, h2, h3, h4, h5, h6, 
+div[data-testid="stMarkdown"] h1,
+div[data-testid="stMarkdown"] h2,
+div[data-testid="stMarkdown"] h3,
+div[data-testid="stMarkdown"] h4,
+div[data-testid="stMarkdown"] h5,
+div[data-testid="stMarkdown"] h6 {
     color: #ffffff !important;
 }
 
-/* Specific styling for section headers */
-.section-header {
+/* Override Streamlit default styles */
+.css-1d391kg, .css-1lcbmhc, .css-16idsys {
     color: #ffffff !important;
-    font-weight: bold;
-    font-size: 1.5rem;
-    margin-bottom: 10px;
 }
 
-.stDivider { margin-top: 10px; margin-bottom: 10px; }
+.stDivider { 
+    margin-top: 10px; 
+    margin-bottom: 10px; 
+}
 
-/* Fix for markdown elements */
-div[data-testid="stMarkdown"] h3 {
-    color: #ffffff !important;
+/* White background for the whole app */
+.main .block-container {
+    background-color: #0056b3;
+    padding: 2rem;
+    border-radius: 10px;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -75,8 +104,8 @@ if "user_query" not in st.session_state:
 if "chat_response" not in st.session_state:
     st.session_state.chat_response = ""
 
-# Title
-st.title("⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot")
+# Title - Using markdown with custom class for white color
+st.markdown('<h1 class="main-header">⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot</h1>', unsafe_allow_html=True)
 
 # 10 Random Suggestion Prompts from Knowledge Base (UNIT 1 & 2)
 PROMPT_POOL = [
@@ -97,24 +126,38 @@ PROMPT_POOL = [
     "List the characteristics of gravitational force."
 ]
 
-# Display section header in white
+# Section Header - White color
 st.markdown('<p class="section-header">💡 Suggested Academic Prompts</p>', unsafe_allow_html=True)
 
-# Display 10 random prompts in 2 columns
+# Display 10 random prompts in 2 columns with copy buttons
 selected_prompts = random.sample(PROMPT_POOL, min(10, len(PROMPT_POOL)))
 
 cols = st.columns(2)
 for i, prompt in enumerate(selected_prompts):
     col_idx = i % 2
     with cols[col_idx]:
-        if st.button(prompt, key=f"prompt_{i}", use_container_width=True):
-            st.session_state.user_query = prompt
-            st.session_state.chat_response = ""
-            st.rerun()
+        # Create a container for prompt and copy button
+        st.markdown(f"""
+        <div class="suggestion-container">
+            <div class="suggestion-text">{prompt}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Copy button for each prompt
+        col_btn1, col_btn2 = st.columns([3, 1])
+        with col_btn1:
+            if st.button("Use Prompt", key=f"use_{i}", use_container_width=True):
+                st.session_state.user_query = prompt
+                st.session_state.chat_response = ""
+                st.rerun()
+        with col_btn2:
+            if st.button("📋", key=f"copy_{i}", help="Copy to clipboard"):
+                st.code(prompt, language=None)
+                st.success("Copied! Press Ctrl+C to copy")
 
 st.divider()
 
-# Text Field 1: User Input - Display header in white
+# Text Field 1: User Input - White header
 st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
 user_input = st.text_area(
     "Type your science question here...",
@@ -201,12 +244,18 @@ if reset_btn:
     st.session_state.chat_response = ""
     st.rerun()
 
-# Text Field 2: Multi-line Result Display - Display header in white
+# Text Field 2: Multi-line Result Display - White header
 st.markdown('<p class="section-header">📖 Retrieved Academic Response</p>', unsafe_allow_html=True)
 st.text_area(
     "Answer will appear here:",
     value=st.session_state.chat_response,
-    height=250,
+    height=300,
     disabled=True,
     label_visibility="collapsed"
 )
+
+# Copy result button
+if st.session_state.chat_response:
+    if st.button("📋 Copy Response"):
+        st.code(st.session_state.chat_response, language=None)
+        st.success("Response copied! Press Ctrl+C to copy")
