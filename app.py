@@ -123,23 +123,197 @@ if "tamil_translation" not in st.session_state:
 # Title
 st.markdown('<h1 class="main-header">⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot</h1>', unsafe_allow_html=True)
 
-# 10 Random Suggestion Prompts from Knowledge Base (UNIT 1 & 2)
+# ENHANCED PROMPT POOL - Covering All Units from Knowledge Base
 PROMPT_POOL = [
+    # UNIT 1: LAWS OF MOTION
     "Explain Newton's First Law of Motion with real-life examples.",
     "What is the difference between mass and weight? Provide formulas.",
     "Derive F = ma from Newton's Second Law of Motion.",
     "How does rocket propulsion demonstrate conservation of momentum?",
-    "State and explain Snell's Law of Refraction.",
-    "Calculate acceleration due to gravity using Earth's mass and radius.",
     "Define torque and explain its application in a steering wheel.",
     "Explain the principle of moments using a seesaw example.",
-    "How does the value of 'g' vary with altitude and depth?",
     "What is impulse and how is it related to change in momentum?",
     "Explain inertia of rest, motion, and direction with examples.",
+    "How does the value of 'g' vary with altitude and depth?",
+    "State and explain Newton's Universal Law of Gravitation.",
     "Describe the working of shock absorbers using impulse-momentum theorem.",
     "What are balanced and unbalanced forces? Give examples.",
+    
+    # UNIT 2: OPTICS
     "Explain the wave nature of light and the formula c = νλ.",
-    "List the characteristics of gravitational force."
+    "State and explain Snell's Law of Refraction with examples.",
+    "What is dispersion of light? Explain spectrum formation through a prism.",
+    "Explain Rayleigh scattering and why the sky appears blue.",
+    "Describe the formation of images by convex and concave lenses.",
+    "What is myopia and how is it corrected using lenses?",
+    "Explain the working of a simple microscope.",
+    "What is total internal reflection? Give its applications.",
+    "Describe the structure and working of the human eye.",
+    "Explain why clouds appear white (Mie scattering).",
+    
+    # UNIT 3: THERMAL PHYSICS
+    "Explain the difference between heat and temperature.",
+    "What is thermal expansion? Explain linear, superficial, and cubical expansion.",
+    "State and explain Boyle's Law with mathematical representation.",
+    "Describe real and apparent expansion of liquids.",
+    "What is specific heat capacity? Explain its significance.",
+    "Explain the working principle of a mercury thermometer.",
+    "What is absolute zero? Explain the Kelvin temperature scale.",
+    
+    # UNIT 4: ELECTRICITY
+    "State and explain Ohm's Law with formula V = IR.",
+    "What is the difference between series and parallel circuits?",
+    "Explain the heating effect of electric current and Joule's Law.",
+    "Describe the domestic electric circuit and safety measures.",
+    "What is the function of a fuse and MCB in household circuits?",
+    "Explain the difference between AC and DC current.",
+    "What is electrical resistivity? How does it differ from resistance?",
+    "Describe the working principle of an LED bulb.",
+    "How is electrical energy consumption calculated? Explain kWh.",
+    
+    # UNIT 5: ACOUSTICS
+    "Explain the production and propagation of sound waves.",
+    "What is the Doppler Effect? Explain with examples.",
+    "Describe the reflection of sound and its applications.",
+    "What is an echo? Explain the conditions for hearing a distinct echo.",
+    "Explain the difference between musical sound and noise.",
+    "What are ultrasonic waves? Give their applications.",
+    "Describe the working of SONAR and its uses.",
+    "Explain how sound travels faster in solids than in gases.",
+    
+    # UNIT 6: NUCLEAR PHYSICS
+    "What is radioactivity? Explain natural and artificial radioactivity.",
+    "Describe the properties of alpha, beta, and gamma rays.",
+    "Explain nuclear fission and its applications in power generation.",
+    "What is nuclear fusion? How does it differ from fission?",
+    "Describe the working principle of an atom bomb.",
+    "What are isotopes? Give examples and applications.",
+    "Explain the concept of half-life in radioactive decay.",
+    "What are the safety measures for handling radioactive materials?",
+    
+    # UNIT 7: ATOMS AND MOLECULES
+    "Explain Dalton's atomic theory and its limitations.",
+    "What is the mole concept? Explain Avogadro's number.",
+    "Describe the structure of an atom with subatomic particles.",
+    "What is the difference between atoms and molecules?",
+    "Explain isotopes, isobars, and isotones with examples.",
+    "Calculate the molecular mass of H₂SO₄ and CaCO₃.",
+    "What is atomicity? Give examples of monoatomic, diatomic molecules.",
+    
+    # UNIT 8: PERIODIC CLASSIFICATION
+    "State the Modern Periodic Law and explain its significance.",
+    "Describe the trends in atomic radius across periods and groups.",
+    "What is ionization energy? Explain its periodic variation.",
+    "Explain electronegativity and its role in bond formation.",
+    "Describe the extraction of aluminium from bauxite ore.",
+    "What is corrosion? Explain the rusting of iron and prevention methods.",
+    "Describe the metallurgy of copper with chemical equations.",
+    "What are alloys? Give examples and their uses.",
+    
+    # UNIT 9: SOLUTIONS
+    "What is a solution? Explain solute, solvent, and dissolution.",
+    "Describe saturated, unsaturated, and supersaturated solutions.",
+    "What factors affect the solubility of substances?",
+    "Explain mass percentage and volume percentage concentration.",
+    "What is water of crystallization? Give examples of hydrated salts.",
+    "Describe hygroscopy and deliquescence with examples.",
+    "How does temperature affect the solubility of gases in liquids?",
+    
+    # UNIT 10: CHEMICAL REACTIONS
+    "What are the different types of chemical reactions? Give examples.",
+    "Explain combination and decomposition reactions.",
+    "Describe displacement and double displacement reactions.",
+    "What is a redox reaction? Explain oxidation and reduction.",
+    "Explain the pH scale and its significance in daily life.",
+    "What is chemical equilibrium? Describe its characteristics.",
+    "Describe the factors affecting the rate of chemical reactions.",
+    "What is neutralization? Give its applications.",
+    
+    # UNIT 11: CARBON COMPOUNDS
+    "What are the unique properties of carbon?",
+    "Explain the classification of hydrocarbons: alkanes, alkenes, alkynes.",
+    "Describe the IUPAC nomenclature system for organic compounds.",
+    "What are functional groups? Give examples of alcohols and carboxylic acids.",
+    "Explain the preparation and properties of ethanol.",
+    "Describe the manufacture and uses of ethanoic acid.",
+    "What is saponification? Explain the cleansing action of soap.",
+    "Compare soaps and detergents. Which is better and why?",
+    
+    # UNIT 12: PLANT ANATOMY & PHYSIOLOGY
+    "Describe the structure of a dicot root with a labeled diagram.",
+    "What are the differences between monocot and dicot stems?",
+    "Explain the process of photosynthesis with its equation.",
+    "Describe the structure of chloroplast and its functions.",
+    "What is transpiration? Explain its significance in plants.",
+    "Describe aerobic and anaerobic respiration in plants.",
+    "What are plant hormones? Explain the functions of auxins.",
+    
+    # UNIT 13: ANIMAL STRUCTURE
+    "Describe the external morphology of a leech.",
+    "Explain the digestive system of a rabbit with a diagram.",
+    "What are the adaptations of leech for parasitic life?",
+    "Describe the circulatory system of rabbit.",
+    "Explain the structure of mammalian skin and its derivatives.",
+    
+    # UNIT 14: TRANSPORT & CIRCULATION
+    "Explain the transport of water and minerals in plants.",
+    "Describe the structure and functions of blood components.",
+    "What is double circulation? Explain with a flow chart.",
+    "Describe the structure of the human heart.",
+    "Explain the cardiac cycle and heart sounds.",
+    "What are blood groups? Explain the ABO system.",
+    "Describe the lymphatic system and its functions.",
+    
+    # UNIT 15: NERVOUS SYSTEM
+    "Describe the structure of a neuron with a diagram.",
+    "Explain the reflex arc with an example.",
+    "What are the different parts of the human brain?",
+    "Describe the autonomic nervous system and its divisions.",
+    "Explain the structure of the human eye and vision process.",
+    "What is a synapse? Explain nerve impulse transmission.",
+    
+    # GENETICS
+    "Explain Mendel's monohybrid cross experiment.",
+    "What are the three laws of Mendelian inheritance?",
+    "Describe the structure of DNA with a labeled diagram.",
+    "Explain the process of DNA replication.",
+    "What is sex determination in humans? Explain the mechanism.",
+    "Describe chromosomal disorders: Down's syndrome.",
+    "What are mutations? Explain types of mutations.",
+    
+    # EVOLUTION
+    "What are homologous and analogous organs? Give examples.",
+    "Explain Darwin's theory of natural selection.",
+    "Describe Lamarck's theory of inheritance of acquired characters.",
+    "What are vestigial organs? Give examples in humans.",
+    "Explain the biogenetic law with examples.",
+    "Describe fossilization and its importance in evolution.",
+    "What is Archaeopteryx? Explain its significance as a connecting link.",
+    
+    # PLANT BREEDING
+    "What is plant breeding? Explain the objectives.",
+    "Describe the Green Revolution and its impact.",
+    "Explain hybridization technique in crop improvement.",
+    "What is mutation breeding? Give examples.",
+    "Describe biofortification and its importance.",
+    "What is polyploidy breeding? Explain with examples.",
+    
+    # ANIMAL BREEDING & BIOTECHNOLOGY
+    "Explain inbreeding and outbreeding in animal breeding.",
+    "What is heterosis or hybrid vigor?",
+    "Describe the process of gene cloning.",
+    "Explain the applications of biotechnology in medicine.",
+    "What are GMOs? Give examples and benefits.",
+    "Describe stem cell therapy and its applications.",
+    "What is DNA fingerprinting? Explain its uses.",
+    
+    # HEALTH & DISEASE
+    "What are the types of abuse? Explain child abuse prevention.",
+    "Describe the hazards of tobacco and alcohol abuse.",
+    "Explain diabetes mellitus: types, causes, and management.",
+    "What is obesity? Explain BMI calculation and health risks.",
+    "Describe cardiovascular diseases and prevention methods.",
+    "What is cancer? Explain types and treatment modalities."
 ]
 
 # Section Header - GREEN color
@@ -211,7 +385,7 @@ def get_english_response(query):
             "messages": [
                 {
                     "role": "system",
-                    "content": "You are an academic science tutor for 10th Standard Tamil Nadu State Board students. Provide clear, accurate, and curriculum-aligned answers. Use formal academic language. Structure responses with definitions, formulas, examples, and real-life applications. Keep explanations concise, educational, and strictly focused on the TN State Board syllabus (Laws of Motion, Optics, etc.)."
+                    "content": "You are an academic science tutor for 10th Standard Tamil Nadu State Board students. Provide clear, accurate, and curriculum-aligned answers. Use formal academic language. Structure responses with definitions, formulas, examples, and real-life applications. Keep explanations concise, educational, and strictly focused on the TN State Board syllabus covering Physics, Chemistry, and Biology topics."
                 },
                 {
                     "role": "user",
