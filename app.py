@@ -42,7 +42,7 @@ st.markdown("""
 
 /* Section Text area in white */
 .section-textarea {
-    color: white !important;
+    color: Red !important;
     font-weight: bold !important;
     font-size: 1.4rem !important;
     margin: 1rem 0 !important;
