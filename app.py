@@ -133,8 +133,10 @@ if "tamil_translation" not in st.session_state:
     st.session_state.tamil_translation = ""
 if "topics_list" not in st.session_state:
     st.session_state.topics_list = []
-if "last_search_query" not in st.session_state:
-    st.session_state.last_search_query = ""
+if "search_counter" not in st.session_state:
+    st.session_state.search_counter = 0
+if "last_input_query" not in st.session_state:
+    st.session_state.last_input_query = ""
 
 # ============================================================================
 # TAMIL SCIENTIFIC VOCABULARY - TN STATE BOARD STANDARD TERMS
@@ -456,7 +458,8 @@ for i, prompt in enumerate(suggestions):
                 st.session_state.user_query = prompt
                 st.session_state.chat_response = ""
                 st.session_state.tamil_translation = ""
-                st.session_state.last_search_query = ""
+                st.session_state.last_input_query = ""
+                st.session_state.search_counter += 1
                 st.rerun()
         with col_btn2:
             if st.button("📋", key=f"copy_{i}", help="Copy to clipboard"):
@@ -479,11 +482,11 @@ user_input = st.text_area(
 
 col1, col2, col3 = st.columns(3)
 with col1:
-    submit_btn = st.button("📤 Submit Prompt", use_container_width=True)
+    submit_btn = st.button("📤 Submit Prompt", use_container_width=True, key="submit_btn")
 with col2:
-    translate_btn = st.button("🌐 Translate to Tamil", use_container_width=True, disabled=not st.session_state.chat_response)
+    translate_btn = st.button("🌐 Translate to Tamil", use_container_width=True, disabled=not st.session_state.chat_response, key="translate_btn")
 with col3:
-    reset_btn = st.button("🔄 Reset", use_container_width=True)
+    reset_btn = st.button("🔄 Reset", use_container_width=True, key="reset_btn")
 
 # Optional: Add debug mode toggle in sidebar
 with st.sidebar:
@@ -575,14 +578,17 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
         return f"⚠️ Unexpected Error: {str(e)}\n\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
 
 # ============================================================================
-# API CALL & RESPONSE HANDLING - SIMPLIFIED AUTO-RESET
+# API CALL & RESPONSE HANDLING - FIXED AUTO-RESET MECHANISM
 # ============================================================================
 if submit_btn and user_input.strip():
     current_query = user_input.strip()
-    last_query = st.session_state.get('last_search_query', '')
+    last_query = st.session_state.get('last_input_query', '')
+    current_counter = st.session_state.get('search_counter', 0)
     
-    # Always perform search if query is different from last submitted query
-    if current_query != last_query:
+    # Always perform search if:
+    # 1. Query is different from last submitted query, OR
+    # 2. This is the first search (counter is 0)
+    if current_query != last_query or current_counter == 0:
         with st.spinner("🔍 Searching topics and retrieving academic response..."):
             # Clear previous results for new query (auto-reset)
             st.session_state.chat_response = ""
@@ -590,7 +596,8 @@ if submit_btn and user_input.strip():
             
             # Update session state
             st.session_state.user_query = current_query
-            st.session_state.last_search_query = current_query
+            st.session_state.last_input_query = current_query
+            st.session_state.search_counter += 1
             
             # Perform search
             st.session_state.chat_response = get_response_from_topics(current_query, st.session_state.topics_list)
@@ -641,7 +648,8 @@ if reset_btn:
     st.session_state.user_query = ""
     st.session_state.chat_response = ""
     st.session_state.tamil_translation = ""
-    st.session_state.last_search_query = ""
+    st.session_state.last_input_query = ""
+    st.session_state.search_counter = 0
     st.rerun()
 
 # ============================================================================
