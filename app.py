@@ -6,7 +6,7 @@ import random
 st.set_page_config(
     page_title="TENSCI Chatbot",
     page_icon="⚖️",
-    layout="centered"
+    layout="wide"  # Changed to wide for side-by-side layout
 )
 
 # Custom CSS for Exact Styling Requirements
@@ -104,6 +104,11 @@ div[data-testid="stMarkdown"] h6 {
     padding: 2rem;
     border-radius: 10px;
 }
+
+/* Column spacing */
+.stColumns {
+    margin: 10px 0;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -112,6 +117,8 @@ if "user_query" not in st.session_state:
     st.session_state.user_query = ""
 if "chat_response" not in st.session_state:
     st.session_state.chat_response = ""
+if "tamil_translation" not in st.session_state:
+    st.session_state.tamil_translation = ""
 
 # Title - Using markdown with custom class for Blue color
 st.markdown('<h1 class="main-header">⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot</h1>', unsafe_allow_html=True)
@@ -158,6 +165,7 @@ for i, prompt in enumerate(selected_prompts):
             if st.button("Use Prompt", key=f"use_{i}", use_container_width=True):
                 st.session_state.user_query = prompt
                 st.session_state.chat_response = ""
+                st.session_state.tamil_translation = ""
                 st.rerun()
         with col_btn2:
             if st.button("📋", key=f"copy_{i}", help="Copy to clipboard"):
@@ -177,94 +185,183 @@ user_input = st.text_area(
 )
 
 # Buttons
-col1, col2 = st.columns(2)
+col1, col2, col3 = st.columns(3)
 with col1:
     submit_btn = st.button("📤 Submit Prompt", use_container_width=True)
 with col2:
+    translate_btn = st.button("🌐 Translate to Tamil", use_container_width=True, disabled=not st.session_state.chat_response)
+with col3:
     reset_btn = st.button("🔄 Reset", use_container_width=True)
+
+# Function to get English response
+def get_english_response(query):
+    try:
+        api_key = st.secrets.get("OPENROUTER_API_KEY")
+        
+        if not api_key:
+            return "⚠️ Configuration Error: OPENROUTER_API_KEY not found in secrets.toml. Please add your API key."
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/TENSCI",
+            "X-Title": "TENSCI Chatbot"
+        }
+        
+        payload = {
+            "model": "qwen/qwen-2.5-72b-instruct",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are an academic science tutor for 10th Standard Tamil Nadu State Board students. Provide clear, accurate, and curriculum-aligned answers. Use formal academic language. Structure responses with definitions, formulas, examples, and real-life applications. Keep explanations concise, educational, and strictly focused on the TN State Board syllabus (Laws of Motion, Optics, etc.)."
+                },
+                {
+                    "role": "user",
+                    "content": query
+                }
+            ],
+            "temperature": 0.6,
+            "max_tokens": 1000
+        }
+        
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            if "choices" in result and len(result["choices"]) > 0:
+                return result["choices"][0]["message"]["content"]
+            else:
+                return "⚠️ Error: Invalid response format from API."
+        elif response.status_code == 401:
+            return "⚠️ Authentication Error: Invalid API key. Please verify your OPENROUTER_API_KEY."
+        elif response.status_code == 400:
+            error_detail = response.json().get("error", {}).get("message", "Unknown error")
+            return f"⚠️ Bad Request: {error_detail}\n\nPlease check:\n1. API key is valid\n2. Model name is correct\n3. Request format is proper"
+        else:
+            return f"⚠️ API Error {response.status_code}: {response.text}"
+            
+    except requests.exceptions.Timeout:
+        return "⚠️ Request Timeout: The API took too long to respond. Please try again."
+    except requests.exceptions.ConnectionError:
+        return "⚠️ Connection Error: Unable to connect to the API. Check your internet connection."
+    except Exception as e:
+        return f"⚠️ Unexpected Error: {str(e)}\n\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
+
+# Function to translate to Tamil
+def translate_to_tamil(text):
+    try:
+        api_key = st.secrets.get("OPENROUTER_API_KEY")
+        
+        if not api_key:
+            return "⚠️ Translation API key not found."
+        
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "HTTP-Referer": "https://github.com/TENSCI",
+            "X-Title": "TENSCI Tamil Translation"
+        }
+        
+        payload = {
+            "model": "qwen/qwen-2.5-72b-instruct",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": "You are a professional translator. Translate the following science content from English to simple, clear Tamil suitable for 10th standard Tamil medium students. Keep scientific terms in English with Tamil explanation where needed. Maintain formulas and technical accuracy. Use simple Tamil sentences that students can easily understand."
+                },
+                {
+                    "role": "user",
+                    "content": f"Translate this to Tamil for 10th standard students:\n\n{text}"
+                }
+            ],
+            "temperature": 0.7,
+            "max_tokens": 1500
+        }
+        
+        response = requests.post(
+            "https://openrouter.ai/api/v1/chat/completions",
+            headers=headers,
+            json=payload,
+            timeout=45
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            if "choices" in result and len(result["choices"]) > 0:
+                return result["choices"][0]["message"]["content"]
+            else:
+                return "⚠️ Translation error: Invalid response format."
+        else:
+            return f"⚠️ Translation Error {response.status_code}: {response.text}"
+            
+    except Exception as e:
+        return f"⚠️ Translation Error: {str(e)}"
 
 # API Call & Response Handling
 if submit_btn and user_input.strip():
     with st.spinner("🔍 Retrieving academic response..."):
-        try:
-            # Get API key from secrets
-            api_key = st.secrets.get("OPENROUTER_API_KEY")
-            
-            if not api_key:
-                st.session_state.chat_response = "⚠️ Configuration Error: OPENROUTER_API_KEY not found in secrets.toml. Please add your API key."
-            else:
-                # Prepare headers
-                headers = {
-                    "Authorization": f"Bearer {api_key}",
-                    "Content-Type": "application/json",
-                    "HTTP-Referer": "https://github.com/TENSCI",
-                    "X-Title": "TENSCI Chatbot"
-                }
-                
-                # Prepare payload with correct format
-                payload = {
-                    "model": "qwen/qwen-2.5-72b-instruct",
-                    "messages": [
-                        {
-                            "role": "system",
-                            "content": "You are an academic science tutor for 10th Standard Tamil Nadu State Board students. Provide clear, accurate, and curriculum-aligned answers. Use formal academic language. Structure responses with definitions, formulas, examples, and real-life applications. Keep explanations concise, educational, and strictly focused on the TN State Board syllabus (Laws of Motion, Optics, etc.)."
-                        },
-                        {
-                            "role": "user",
-                            "content": user_input
-                        }
-                    ],
-                    "temperature": 0.6,
-                    "max_tokens": 1000
-                }
-                
-                # Make API request
-                response = requests.post(
-                    "https://openrouter.ai/api/v1/chat/completions",
-                    headers=headers,
-                    json=payload,
-                    timeout=30
-                )
-                
-                # Check response status
-                if response.status_code == 200:
-                    result = response.json()
-                    if "choices" in result and len(result["choices"]) > 0:
-                        st.session_state.chat_response = result["choices"][0]["message"]["content"]
-                    else:
-                        st.session_state.chat_response = "⚠️ Error: Invalid response format from API."
-                elif response.status_code == 401:
-                    st.session_state.chat_response = "⚠️ Authentication Error: Invalid API key. Please verify your OPENROUTER_API_KEY."
-                elif response.status_code == 400:
-                    error_detail = response.json().get("error", {}).get("message", "Unknown error")
-                    st.session_state.chat_response = f"⚠️ Bad Request: {error_detail}\n\nPlease check:\n1. API key is valid\n2. Model name is correct\n3. Request format is proper"
-                else:
-                    st.session_state.chat_response = f"⚠️ API Error {response.status_code}: {response.text}"
-                    
-        except requests.exceptions.Timeout:
-            st.session_state.chat_response = "⚠️ Request Timeout: The API took too long to respond. Please try again."
-        except requests.exceptions.ConnectionError:
-            st.session_state.chat_response = "⚠️ Connection Error: Unable to connect to the API. Check your internet connection."
-        except Exception as e:
-            st.session_state.chat_response = f"⚠️ Unexpected Error: {str(e)}\n\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
+        st.session_state.chat_response = get_english_response(user_input)
+        st.session_state.tamil_translation = ""  # Clear previous translation
+        st.rerun()
+
+# Translation Handling
+if translate_btn and st.session_state.chat_response:
+    with st.spinner("🌐 Translating to Tamil..."):
+        st.session_state.tamil_translation = translate_to_tamil(st.session_state.chat_response)
+        st.rerun()
 
 if reset_btn:
     st.session_state.user_query = ""
     st.session_state.chat_response = ""
+    st.session_state.tamil_translation = ""
     st.rerun()
 
-# Text Field 2: Multi-line Result Display - GREEN header, BLUE background with WHITE text
-st.markdown('<p class="section-header">📖 Retrieved Academic Response</p>', unsafe_allow_html=True)
-st.text_area(
-    "Answer will appear here:",
-    value=st.session_state.chat_response,
-    height=300,
-    disabled=True,
-    label_visibility="collapsed"
-)
-
-# Copy result button
+# Display Results - Side by Side
 if st.session_state.chat_response:
-    if st.button("📋 Copy Response"):
-        st.code(st.session_state.chat_response, language=None)
-        st.success("Response copied! Press Ctrl+C to copy")
+    st.divider()
+    
+    # Two columns for English and Tamil
+    col_eng, col_tam = st.columns(2)
+    
+    with col_eng:
+        st.markdown('<p class="section-header">📖 Retrieved Academic Response (English)</p>', unsafe_allow_html=True)
+        st.text_area(
+            "English Response:",
+            value=st.session_state.chat_response,
+            height=400,
+            disabled=True,
+            label_visibility="collapsed",
+            key="english_response"
+        )
+        if st.button("📋 Copy English Response", key="copy_eng"):
+            st.code(st.session_state.chat_response, language=None)
+            st.success("English response copied! Press Ctrl+C to copy")
+    
+    with col_tam:
+        st.markdown('<p class="section-header">📚 தமிழ் விளக்கம் (Tamil Translation)</p>', unsafe_allow_html=True)
+        if st.session_state.tamil_translation:
+            st.text_area(
+                "Tamil Translation:",
+                value=st.session_state.tamil_translation,
+                height=400,
+                disabled=True,
+                label_visibility="collapsed",
+                key="tamil_response"
+            )
+            if st.button("📋 Copy Tamil Response", key="copy_tam"):
+                st.code(st.session_state.tamil_translation, language=None)
+                st.success("Tamil response copied! Press Ctrl+C to copy")
+        else:
+            st.text_area(
+                "Tamil Translation:",
+                value="Click 'Translate to Tamil' button to get Tamil translation for 10th standard students",
+                height=400,
+                disabled=True,
+                label_visibility="collapsed",
+                key="tamil_placeholder"
+            )
