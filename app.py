@@ -1,4 +1,4 @@
-# app.py
+ # app.py
 import streamlit as st
 import requests
 import random
@@ -133,8 +133,10 @@ if "tamil_translation" not in st.session_state:
     st.session_state.tamil_translation = ""
 if "topics_list" not in st.session_state:
     st.session_state.topics_list = []
-if "last_search_query" not in st.session_state:
-    st.session_state.last_search_query = ""
+if "last_submitted_query" not in st.session_state:
+    st.session_state.last_submitted_query = ""
+if "search_triggered" not in st.session_state:
+    st.session_state.search_triggered = False
 
 # ============================================================================
 # TAMIL SCIENTIFIC VOCABULARY - TN STATE BOARD STANDARD TERMS
@@ -456,7 +458,8 @@ for i, prompt in enumerate(suggestions):
                 st.session_state.user_query = prompt
                 st.session_state.chat_response = ""
                 st.session_state.tamil_translation = ""
-                st.session_state.last_search_query = ""
+                st.session_state.last_submitted_query = ""
+                st.session_state.search_triggered = False
                 st.rerun()
         with col_btn2:
             if st.button("📋", key=f"copy_{i}", help="Copy to clipboard"):
@@ -575,19 +578,28 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
         return f"⚠️ Unexpected Error: {str(e)}\n\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
 
 # ============================================================================
-# API CALL & RESPONSE HANDLING - FIXED
+# API CALL & RESPONSE HANDLING - AUTO RESET ON NEW SEARCH
 # ============================================================================
 if submit_btn and user_input.strip():
-    # Check if this is a new query or the same as last search
-    if user_input.strip() != st.session_state.get('last_search_query', ''):
-        # New query - clear previous results and search
+    current_query = user_input.strip()
+    last_query = st.session_state.get('last_submitted_query', '')
+    
+    # Always perform search if query is different from last submitted query
+    # OR if search hasn't been triggered yet
+    if current_query != last_query or not st.session_state.get('search_triggered', False):
         with st.spinner("🔍 Searching topics and retrieving academic response..."):
-            st.session_state.user_query = user_input.strip()  # Update session state
-            st.session_state.last_search_query = user_input.strip()  # Track last search
-            st.session_state.chat_response = get_response_from_topics(user_input, st.session_state.topics_list)
-            st.session_state.tamil_translation = ""  # Clear previous translation
+            # Auto-reset: Clear previous results for new query
+            st.session_state.chat_response = ""
+            st.session_state.tamil_translation = ""
+            
+            # Update session state
+            st.session_state.user_query = current_query
+            st.session_state.last_submitted_query = current_query
+            st.session_state.search_triggered = True
+            
+            # Perform search
+            st.session_state.chat_response = get_response_from_topics(current_query, st.session_state.topics_list)
             st.rerun()
-    # If same query, don't re-search (prevents infinite loop)
 
 # ============================================================================
 # 🔁 TRANSLATION HANDLING WITH GOOGLE TRANSLATE + VOCABULARY ENHANCEMENT
@@ -634,7 +646,8 @@ if reset_btn:
     st.session_state.user_query = ""
     st.session_state.chat_response = ""
     st.session_state.tamil_translation = ""
-    st.session_state.last_search_query = ""
+    st.session_state.last_submitted_query = ""
+    st.session_state.search_triggered = False
     st.rerun()
 
 # ============================================================================
@@ -692,6 +705,7 @@ st.markdown(f"""
 📚 Knowledge Base: {len(st.session_state.topics_list)} topics loaded from AllTopic.txt<br>
 🔤 Tamil Scientific Vocabulary: {len(TAMIL_SCIENCE_VOCAB)} standard terms loaded<br>
 🌐 Translation: Google Translate + TN State Board vocabulary enhancement<br>
-🔍 Search: Case-insensitive + substring matching + short-word support enabled
+🔍 Search: Case-insensitive + substring matching + short-word support enabled<br>
+🔄 Auto-Reset: Enabled for each new search
 </div>
 """, unsafe_allow_html=True)
