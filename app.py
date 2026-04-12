@@ -25,24 +25,16 @@ st.markdown("""
 .stTextArea textarea, div[data-testid="stTextArea"] textarea {
     border: 4px solid #000000 !important;
     background-color: #0056b3 !important;
-    color: Green !important;
+    color: #ffffff !important;
     font-weight: bold !important;
     font-size: 1.2rem !important;
     border-radius: 8px !important;
     line-height: 1.4 !important;
 }
 
-/* Section headers in white */
+/* Section headers in GREEN */
 .section-header {
-    color: Blue !important;
-    font-weight: bold !important;
-    font-size: 1.4rem !important;
-    margin: 1rem 0 !important;
-}
-
-/* Section Text area in white */
-.section-textarea {
-    color: Green !important;
+    color: #28a745 !important;
     font-weight: bold !important;
     font-size: 1.4rem !important;
     margin: 1rem 0 !important;
@@ -76,7 +68,7 @@ st.markdown("""
     border-radius: 6px;
 }
 
-/* Force ALL text to white in headers */
+/* Force ALL headers to BLUE */
 h1, h2, h3, h4, h5, h6, 
 div[data-testid="stMarkdown"] h1,
 div[data-testid="stMarkdown"] h2,
@@ -84,12 +76,12 @@ div[data-testid="stMarkdown"] h3,
 div[data-testid="stMarkdown"] h4,
 div[data-testid="stMarkdown"] h5,
 div[data-testid="stMarkdown"] h6 {
-    color: #ffffff !important;
+    color: #0056b3 !important;
 }
 
 /* Override Streamlit default styles */
 .css-1d391kg, .css-1lcbmhc, .css-16idsys {
-    color: Red !important;
+    color: #0056b3 !important;
 }
 
 .stDivider { 
@@ -99,7 +91,7 @@ div[data-testid="stMarkdown"] h6 {
 
 /* White background for the whole app */
 .main .block-container {
-    background-color: Pink;
+    background-color: #ffffff;
     padding: 2rem;
     border-radius: 10px;
 }
@@ -112,7 +104,7 @@ if "user_query" not in st.session_state:
 if "chat_response" not in st.session_state:
     st.session_state.chat_response = ""
 
-# Title - Using markdown with custom class for white color
+# Title - Using markdown with custom class for Blue color
 st.markdown('<h1 class="main-header">⚖️ 10 Standard Student Tamil Nadu State Board Science Subject Chatbot</h1>', unsafe_allow_html=True)
 
 # 10 Random Suggestion Prompts from Knowledge Base (UNIT 1 & 2)
@@ -134,7 +126,7 @@ PROMPT_POOL = [
     "List the characteristics of gravitational force."
 ]
 
-# Section Header - White color
+# Section Header - GREEN color
 st.markdown('<p class="section-header">💡 Suggested Academic Prompts</p>', unsafe_allow_html=True)
 
 # Display 10 random prompts in 2 columns with copy buttons
@@ -165,8 +157,8 @@ for i, prompt in enumerate(selected_prompts):
 
 st.divider()
 
-# Text Field 1: User Input - White header
-st.markdown('<p class="section-textarea">📝 Enter Your Query</p>', unsafe_allow_html=True)
+# Text Field 1: User Input - GREEN header, BLUE background with WHITE text
+st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
 user_input = st.text_area(
     "Type your science question here...",
     value=st.session_state.user_query,
@@ -252,8 +244,8 @@ if reset_btn:
     st.session_state.chat_response = ""
     st.rerun()
 
-# Text Field 2: Multi-line Result Display - White header
-st.markdown('<p class="section-textarea">📖 Retrieved Academic Response</p>', unsafe_allow_html=True)
+# Text Field 2: Multi-line Result Display - GREEN header, BLUE background with WHITE text
+st.markdown('<p class="section-header">📖 Retrieved Academic Response</p>', unsafe_allow_html=True)
 st.text_area(
     "Answer will appear here:",
     value=st.session_state.chat_response,
