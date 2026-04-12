@@ -40,7 +40,9 @@ textarea.stTextArea,
     font-weight: bold !important;
     font-size: 1.2rem !important;
     border-radius: 8px !important;
-    line-height: 1.4 !important;
+    line-height: 1.6 !important;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
 }
 
 /* SPECIFIC FIX - Force white text in ALL textareas */
@@ -233,6 +235,45 @@ TAMIL_SCIENCE_VOCAB = {
 }
 
 # ============================================================================
+# FUNCTION TO CLEAN AND FORMAT TAMIL TRANSLATION
+# ============================================================================
+def clean_tamil_translation(text):
+    """
+    Clean Tamil translation by removing LaTeX markers, escape characters,
+    and formatting into proper paragraphs
+    """
+    if not text:
+        return ""
+    
+    cleaned = text
+    
+    # Remove LaTeX math delimiters
+    cleaned = re.sub(r'\\\(', '', cleaned)
+    cleaned = re.sub(r'\\\)', '', cleaned)
+    cleaned = re.sub(r'\\\[(.*?)\\\]', r'\1', cleaned, flags=re.DOTALL)
+    
+    # Remove backslash escape characters
+    cleaned = cleaned.replace('\\', '')
+    
+    # Remove markdown code markers
+    cleaned = re.sub(r'`\$?(.*?)\$?`', r'\1', cleaned)
+    
+    # Clean up extra spaces and newlines
+    cleaned = re.sub(r'\n\s*\n', '\n\n', cleaned)
+    cleaned = re.sub(r' +', ' ', cleaned)
+    
+    # Fix punctuation spacing
+    cleaned = re.sub(r'\s*([.,:;!?])\s*', r'\1 ', cleaned)
+    
+    # Remove multiple consecutive newlines (keep max 2)
+    cleaned = re.sub(r'\n{3,}', '\n\n', cleaned)
+    
+    # Strip leading/trailing whitespace
+    cleaned = cleaned.strip()
+    
+    return cleaned
+
+# ============================================================================
 # FUNCTION TO LOAD AND PARSE AllTopic.txt
 # ============================================================================
 @st.cache_data
@@ -253,7 +294,7 @@ def load_topics():
                     'number': topic_num,
                     'text': topic_text,
                     'full': f"{topic_num}. {topic_text}",
-                    'search_text': topic_text.lower()  # Pre-compute lowercase for faster case-insensitive search
+                    'search_text': topic_text.lower()
                 })
         
         return topics
@@ -269,21 +310,10 @@ if not st.session_state.topics_list:
 # ✅ FIXED: FUNCTION TO SEARCH RELEVANT TOPICS
 # ============================================================================
 def search_topics(query, topics):
-    """
-    Search for topics relevant to the user's query - IMPROVED VERSION
-    
-    Key Improvements:
-    ✅ Removed len(word) > 3 filter - Now "DNA" (3 chars) will be matched
-    ✅ Added stop words filtering - Removes common words like "explain", "through", "what"
-    ✅ Phrase matching boost - If query phrase exists in topic, gets +5 score
-    ✅ Key term overlap - Checks for partial word matches
-    ✅ Case-insensitive search throughout
-    ✅ Debug output - Prints matched topics to console for troubleshooting
-    """
+    """Search for topics relevant to the user's query - IMPROVED VERSION"""
     query_lower = query.lower()
     relevant_topics = []
     
-    # Stop words to filter out for better matching
     stop_words = {
         'explain', 'what', 'how', 'why', 'when', 'where', 'the', 'through', 
         'about', 'define', 'describe', 'is', 'are', 'was', 'were', 'be', 
@@ -292,41 +322,33 @@ def search_topics(query, topics):
         'or', 'but', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by', 'from'
     }
     
-    # Extract meaningful query words (remove stop words)
     query_words = [word for word in query_lower.split() if word not in stop_words and len(word) >= 2]
     
     for topic in topics:
-        topic_search_text = topic['search_text']  # Already lowercase
+        topic_search_text = topic['search_text']
         topic_words = topic_search_text.split()
         
-        # Method 1: Count exact word matches (including short words like DNA)
         word_match_count = sum(1 for word in query_words if word in topic_search_text)
         
-        # Method 2: Phrase/substring match boost (higher priority)
         phrase_boost = 0
         if query_lower in topic_search_text or topic_search_text in query_lower:
-            phrase_boost = 5  # Significant boost for phrase matches
+            phrase_boost = 5
         
-        # Method 3: Key term overlap - partial word matching
         key_term_boost = 0
         for query_word in query_words:
-            if len(query_word) >= 3:  # Only for meaningful terms
-                # Check if query word is contained in any topic word or vice versa
+            if len(query_word) >= 3:
                 for topic_word in topic_words:
                     if query_word in topic_word or topic_word in query_word:
                         key_term_boost += 1
-                        break  # Count each query word only once
+                        break
         
-        # Method 4: Bonus for multi-word query terms matching together
         multi_word_bonus = 0
         if len(query_words) >= 2:
-            # Check if multiple query words appear close together in topic
             for i in range(len(query_words) - 1):
                 phrase = f"{query_words[i]} {query_words[i+1]}"
                 if phrase in topic_search_text:
                     multi_word_bonus += 2
         
-        # Calculate total relevance score
         total_score = word_match_count + phrase_boost + key_term_boost + multi_word_bonus
         
         if total_score > 0:
@@ -341,19 +363,16 @@ def search_topics(query, topics):
                 }
             })
     
-    # Sort by score (highest first), then by topic number for consistency
     relevant_topics.sort(key=lambda x: (-x['score'], int(x['topic']['number'])))
     
-    # Debug output (visible in terminal/console, not in UI)
     if relevant_topics and st.session_state.get('debug_mode', False):
         print(f"\n🔍 Search Debug for query: '{query}'")
         print(f"   Query words analyzed: {query_words}")
         for i, rt in enumerate(relevant_topics[:5]):
             details = rt['match_details']
             print(f"   {i+1}. [Score: {rt['score']}] #{rt['topic']['number']}: {rt['topic']['text'][:70]}...")
-            print(f"      Details: word={details['word_matches']}, phrase={details['phrase_boost']}, key={details['key_term_boost']}, multi={details['multi_word_bonus']}")
     
-    return relevant_topics[:10]  # Return top 10 most relevant topics
+    return relevant_topics[:10]
 
 # ============================================================================
 # TITLE & SUGGESTIONS
@@ -449,7 +468,6 @@ def get_response_from_topics(query, topics):
         if not relevant:
             return "⚠️ No relevant topics found in the knowledge base. Please try rephrasing your query.\n\nExample queries:\n- 'Explain electric current'\n- 'What is Ohm's Law?'\n- 'Explain Newton's laws'\n- 'Life activity regulation through DNA'"
         
-        # Build context from relevant topics
         context_topics = "\n".join([f"{r['topic']['full']}" for r in relevant])
         
         api_key = st.secrets.get("OPENROUTER_API_KEY")
@@ -477,7 +495,7 @@ Provide a clear, detailed, and curriculum-aligned explanation covering:
 3. Real-life examples and applications
 4. Important points for students to remember
 
-Use formal academic language suitable for Tamil Nadu State Board 10th standard students. Keep explanations concise but comprehensive."""
+Use formal academic language suitable for Tamil Nadu State Board 10th standard students. Keep explanations concise but comprehensive. Avoid using LaTeX formatting or special characters."""
 
         payload = {
             "model": "qwen/qwen-2.5-72b-instruct",
@@ -542,7 +560,6 @@ if translate_btn and st.session_state.chat_response:
             translator = GoogleTranslator(source='en', target='ta')
             
             for chunk in chunks:
-                # Small delay to avoid rate limiting
                 time.sleep(0.5)
                 translated = translator.translate(chunk)
                 translated_chunks.append(translated)
@@ -552,20 +569,13 @@ if translate_btn and st.session_state.chat_response:
             # Enhance with TN State Board scientific vocabulary
             enhanced_tamil = raw_tamil
             for eng_term, tamil_term in TAMIL_SCIENCE_VOCAB.items():
-                # Word boundary regex to avoid partial replacements
                 pattern = r'\b' + re.escape(eng_term) + r'\b'
                 enhanced_tamil = re.sub(pattern, tamil_term, enhanced_tamil, flags=re.IGNORECASE)
             
-            # Post-process: fix spacing/punctuation issues
-            fixes = [
-                (r"\.(\S)", r". \1"),
-                (r",(\S)", r", \1"),
-                (r"\s+", " "),
-            ]
-            for pattern, replacement in fixes:
-                enhanced_tamil = re.sub(pattern, replacement, enhanced_tamil)
+            # Clean and format the Tamil translation
+            cleaned_tamil = clean_tamil_translation(enhanced_tamil)
             
-            st.session_state.tamil_translation = enhanced_tamil.strip()
+            st.session_state.tamil_translation = cleaned_tamil
             
         except Exception as e:
             st.session_state.tamil_translation = f"⚠️ மொழிபெயர்ப்பு பிழை: {str(e)}\n\nமாற்றீடு: கைமுறையாக மொழிபெயர்க்க முயற்சிக்கவும் அல்லது பின்னர் முயற்சிக்கவும்."
