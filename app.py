@@ -1,4 +1,4 @@
-import streamlit as st
+ import streamlit as st
 import requests
 import random
 import re
@@ -447,18 +447,15 @@ if submit_btn and user_input.strip():
         st.session_state.tamil_translation = ""  # Clear previous translation
         st.rerun()
 
-# Translation Handling with Tamil Scientific Vocabulary
+# Translation Handling - OPTIMIZED FOR SPEED AND SIMPLICITY
 if translate_btn and st.session_state.chat_response:
-    with st.spinner("🌐 Translating to Tamil with TN State Board vocabulary..."):
+    with st.spinner("🌐 தமிழாக்கம் செய்கிறது..."):
         try:
             api_key = st.secrets.get("OPENROUTER_API_KEY")
             
             if not api_key:
                 st.session_state.tamil_translation = "⚠️ Translation API key not found."
             else:
-                # Build vocabulary instruction
-                vocab_list = "\n".join([f"- {eng}: {tam}" for eng, tam in list(TAMIL_SCIENCE_VOCAB.items())[:30]])
-                
                 headers = {
                     "Authorization": f"Bearer {api_key}",
                     "Content-Type": "application/json",
@@ -466,45 +463,42 @@ if translate_btn and st.session_state.chat_response:
                     "X-Title": "TENSCI Tamil Translation"
                 }
                 
+                # OPTIMIZED: Simple and direct translation prompt
                 payload = {
                     "model": "qwen/qwen-2.5-72b-instruct",
                     "messages": [
                         {
                             "role": "system",
-                            "content": f"""You are a professional Tamil translator specializing in Tamil Nadu State Board 10th standard science education.
+                            "content": """நீங்கள் தமிழ்நாடு அரசுப் பாடத்திட்டத்தின் 10-ஆம் வகுப்பு அறிவியல் ஆசிரியர்.
 
-CRITICAL REQUIREMENTS:
-1. Use ONLY Tamil Nadu State Board approved scientific terminology
-2. Translate EVERYTHING completely - definitions, formulas, examples, all sections
-3. Keep formulas and equations in English/symbols but explain in Tamil
-4. Use simple, clear Tamil sentences suitable for Tamil medium students
-5. Maintain technical accuracy with official TN State Board vocabulary
-6. DO NOT skip any content - translate the entire text word by word
-7. Use proper Tamil grammar appropriate for 10th standard level
+முக்கிய வழிமுறைகள்:
+1. எளிய, தெளிவான தமிழில் மொழிபெயர்க்கவும்
+2. பாடப்புத்தக நடையில் எழுதவும்
+3. அறிவியல் சொற்களைத் தமிழில் பயன்படுத்தவும் (எ.கா: diffusion = பரவல், evolution = பரிணாமம்)
+4. சூத்திரங்களை ஆங்கிலத்தில் வைத்து, தமிழில் விளக்கவும்
+5. வாக்கியங்கள் சுருக்கமாகவும், புரியும்படியும் இருக்க வேண்டும்
+6. முழு உரையையும் மொழிபெயர்க்கவும் - எதையும் தவிர்க்க வேண்டாம்
 
-STANDARD TAMIL SCIENTIFIC VOCABULARY (Use these terms):
-{vocab_list}
-... and more terms from TN State Board textbook
+எடுத்துக்காட்டு:
+"Vestigial organs are body parts that have lost most or all of their ancestral functions through evolution."
+மொழிபெயர்ப்பு: "எச்ச உறுப்புகள் என்பவை, பரிணாமத்தின் காரணமாகத் தங்களின் மூதாதையர் செயல்பாடுகளைப் பெரும்பாலும் அல்லது முழுமையாக இழந்த உடல் பாகங்கள் ஆகும்."
 
-For terms not in the list, use commonly accepted Tamil scientific terms from TN State Board textbooks.
-
-Translate section headings, bullet points, numbered lists completely.
-Keep mathematical symbols and formulas as is but provide Tamil explanation."""
+இதுபோன்ற எளிய, இயற்கையான தமிழ் நடையைப் பின்பற்றவும்."""
                         },
                         {
                             "role": "user",
-                            "content": f"Translate this science content to Tamil using TN State Board 10th standard vocabulary. Translate EVERY word, section, and example:\n\n{st.session_state.chat_response}"
+                            "content": f"பின்வரும் ஆங்கில அறிவியல் உரையை 10-ஆம் வகுப்பு மாணவர்களுக்கு ஏற்ற எளிய தமிழில் மொழிபெயர்க்கவும்:\n\n{st.session_state.chat_response}"
                         }
                     ],
-                    "temperature": 0.6,
-                    "max_tokens": 4000
+                    "temperature": 0.5,
+                    "max_tokens": 2500  # OPTIMIZED: Reduced from 4000
                 }
                 
                 response = requests.post(
                     "https://openrouter.ai/api/v1/chat/completions",
                     headers=headers,
                     json=payload,
-                    timeout=60
+                    timeout=35  # OPTIMIZED: Reduced from 60 to 35 seconds
                 )
                 
                 if response.status_code == 200:
@@ -512,12 +506,12 @@ Keep mathematical symbols and formulas as is but provide Tamil explanation."""
                     if "choices" in result and len(result["choices"]) > 0:
                         st.session_state.tamil_translation = result["choices"][0]["message"]["content"]
                     else:
-                        st.session_state.tamil_translation = "⚠️ Translation error: Invalid response format."
+                        st.session_state.tamil_translation = "⚠️ மொழிபெயர்ப்பு பிழை: தவறான பதில் வடிவம்."
                 else:
-                    st.session_state.tamil_translation = f"⚠️ Translation Error {response.status_code}: {response.text}"
+                    st.session_state.tamil_translation = f"⚠️ மொழிபெயர்ப்பு பிழை {response.status_code}: {response.text}"
                     
         except Exception as e:
-            st.session_state.tamil_translation = f"⚠️ Translation Error: {str(e)}"
+            st.session_state.tamil_translation = f"⚠️ மொழிபெயர்ப்பு பிழை: {str(e)}"
         
         st.rerun()
 
@@ -565,7 +559,7 @@ if st.session_state.chat_response:
         else:
             st.text_area(
                 "Tamil Translation:",
-                value="🔄 Click 'Translate to Tamil' button above to get complete Tamil translation using TN State Board 10th standard scientific vocabulary.\n\nThe translation will include:\n- Complete definitions with official Tamil terms\n- All formulas with Tamil explanations\n- Real-life applications\n- Examples\n- All sections and points\n\nPlease wait a moment for the complete translation.",
+                value="🔄 மேலே உள்ள 'Translate to Tamil' பொத்தானைச் சொடுக்கி, தமிழ்நாடு அரசுப் பாடத்திட்ட 10-ஆம் வகுப்பு அறிவியல் சொற்களைப் பயன்படுத்தி முழுமையான தமிழாக்கத்தைப் பெறவும்.\n\nமொழிபெயர்ப்பில் இவை அடங்கும்:\n- அதிகாரப்பூர்வ தமிழ்ச் சொற்களுடன் முழுமையான வரைவிலக்கணங்கள்\n- தமிழ் விளக்கங்களுடன் அனைத்துச் சூத்திரங்களும்\n- நடைமுறைப் பயன்பாடுகள்\n- எடுத்துக்காட்டுகள்\n- அனைத்துப் பிரிவுகளும் புள்ளிகளும்\n\nமுழுமையான மொழிபெயர்ப்பிற்குச் சிறிது நேரம் காத்திருக்கவும்.",
                 height=500,
                 disabled=True,
                 label_visibility="collapsed",
