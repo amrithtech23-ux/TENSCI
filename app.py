@@ -16,7 +16,7 @@ st.set_page_config(
 )
 
 # ============================================================================
-# CUSTOM CSS (Includes Fixes for Text Area Alignment and Scrolling)
+# CUSTOM CSS
 # ============================================================================
 st.markdown("""
 <style>
@@ -27,6 +27,36 @@ st.markdown("""
     font-size: 2rem !important;
     text-align: center !important;
     margin-bottom: 2rem !important;
+}
+
+/* Text area styling - Blue background, WHITE text */
+.stTextArea textarea,
+div[data-testid="stTextArea"] textarea,
+textarea.stTextArea,
+.stTextArea > div > textarea {
+    border: 4px solid #000000 !important;
+    background-color: #0056b3 !important;
+    color: #ffffff !important;
+    font-weight: bold !important;
+    font-size: 1.2rem !important;
+    border-radius: 8px !important;
+    line-height: 1.6 !important;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    overflow-y: auto !important;
+    scroll-behavior: auto !important;
+    vertical-align: top !important;
+    text-align: left !important;
+    padding-top: 10px !important;
+    padding-left: 10px !important;
+    height: 100% !important;
+}
+
+/* Force white text in ALL textareas */
+textarea {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    display: block !important;
 }
 
 /* Section headers */
@@ -56,41 +86,6 @@ st.markdown("""
 /* Headers */
 h1, h2, h3, h4, h5, h6 {
     color: #0056b3 !important;
-}
-
-/* 
-   TEXT AREA FIX: 
-   1. Blue background, White text
-   2. Scrollbar fixed to work properly
-   3. Text forced to align Top-Left (padding and vertical-align)
-*/
-.stTextArea textarea,
-div[data-testid="stTextArea"] textarea,
-textarea.stTextArea,
-.stTextArea > div > textarea {
-    border: 4px solid #000000 !important;
-    background-color: #0056b3 !important;
-    color: #ffffff !important;
-    font-weight: bold !important;
-    font-size: 1.2rem !important;
-    border-radius: 8px !important;
-    line-height: 1.6 !important;
-    white-space: pre-wrap !important;
-    word-wrap: break-word !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    vertical-align: top !important;
-    text-align: left !important;
-    padding-top: 10px !important;
-    padding-left: 10px !important;
-    height: 100% !important;
-}
-
-/* Force white text in ALL textareas */
-textarea {
-    color: #ffffff !important;
-    -webkit-text-fill-color: #ffffff !important;
-    display: block !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -282,20 +277,19 @@ with col3:
 # ACTION HANDLERS
 # ============================================================================
 
-# SUBMIT - FIXED LOGIC
+# SUBMIT
 if submit_clicked:
-    # Get the text currently in the text area
     current_query = user_query.strip()
     
     if current_query:
-        # 1. Clear previous results immediately
+        # Clear previous results
         st.session_state.chat_response = ""
         st.session_state.tamil_translation = ""
         
-        # 2. Update the input state to what was submitted
+        # Update input
         st.session_state.query_input = current_query
         
-        # 3. Perform Search
+        # Perform Search
         with st.spinner("🔍 Searching..."):
             relevant = search_relevant_topics(current_query, st.session_state.topics)
             if relevant:
@@ -303,7 +297,6 @@ if submit_clicked:
             else:
                 st.session_state.chat_response = "⚠️ No relevant topics found. Try rephrasing."
         
-        # 4. Rerun to update UI with new results
         st.rerun()
 
 # RESET
@@ -320,7 +313,7 @@ if translate_clicked and st.session_state.chat_response:
     st.rerun()
 
 # ============================================================================
-# DISPLAY RESULTS
+# DISPLAY RESULTS - INCREASED HEIGHT TO 800 PIXELS
 # ============================================================================
 if st.session_state.chat_response:
     st.divider()
@@ -331,7 +324,7 @@ if st.session_state.chat_response:
         st.text_area(
             "Response",
             value=st.session_state.chat_response,
-            height=500,
+            height=800,  # INCREASED FROM 500 TO 800
             disabled=True,
             label_visibility="collapsed",
             key="eng_response"
@@ -343,12 +336,19 @@ if st.session_state.chat_response:
             st.text_area(
                 "Translation",
                 value=st.session_state.tamil_translation,
-                height=500,
+                height=800,  # INCREASED FROM 500 TO 800
                 disabled=True,
                 label_visibility="collapsed",
                 key="tam_response"
             )
         else:
-            st.info("Click 'Translate to Tamil' button to see translation")
+            st.text_area(
+                "Translation",
+                value="Click 'Translate to Tamil' button to see Tamil translation",
+                height=800,  # INCREASED FROM 500 TO 800
+                disabled=True,
+                label_visibility="collapsed",
+                key="tam_placeholder"
+            )
 
-st.markdown("<div style='text-align:center; color:#6b7280; margin-top:20px;'>TENSCI Chatbot | TN State Board 10th Science</div>", unsafe_allow_html=True) 
+st.markdown("<div style='text-align:center; color:#6b7280; margin-top:20px;'>TENSCI Chatbot | TN State Board 10th Science</div>", unsafe_allow_html=True)
