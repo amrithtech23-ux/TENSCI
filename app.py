@@ -49,7 +49,6 @@ textarea.stTextArea,
     text-align: left !important;
     padding-top: 10px !important;
     padding-left: 10px !important;
-    /* REMOVED: height: 300% !important; - This was interfering */
 }
 
 /* Force white text in ALL textareas */
@@ -255,12 +254,15 @@ st.divider()
 # Input Section
 st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
 
-# Bind text area to query_input state variable
+# ✅ KEY FIX: Dynamic key forces text area to refresh when results exist
+text_area_key = f"main_input_{1 if st.session_state.chat_response else 0}"
+
+# Bind text area - show empty when results exist, show query when no results
 user_query = st.text_area(
     "Type your question:",
-    value=st.session_state.query_input,
+    value="" if st.session_state.chat_response else st.session_state.query_input,
     height=100,
-    key="main_input_area",
+    key=text_area_key,
     label_visibility="collapsed"
 )
 
@@ -277,19 +279,20 @@ with col3:
 # ACTION HANDLERS
 # ============================================================================
 
-# SUBMIT
+# SUBMIT - FIXED LOGIC
 if submit_clicked:
+    # Get the text currently in the text area (user's new input)
     current_query = user_query.strip()
     
     if current_query:
-        # Clear previous results
+        # 1. Clear previous results FIRST
         st.session_state.chat_response = ""
         st.session_state.tamil_translation = ""
         
-        # Update input
+        # 2. Update input state to the new query
         st.session_state.query_input = current_query
         
-        # Perform Search
+        # 3. Perform Search
         with st.spinner("🔍 Searching..."):
             relevant = search_relevant_topics(current_query, st.session_state.topics)
             if relevant:
@@ -297,6 +300,7 @@ if submit_clicked:
             else:
                 st.session_state.chat_response = "⚠️ No relevant topics found. Try rephrasing."
         
+        # 4. Rerun to update UI with new results
         st.rerun()
 
 # RESET
@@ -313,7 +317,7 @@ if translate_clicked and st.session_state.chat_response:
     st.rerun()
 
 # ============================================================================
-# DISPLAY RESULTS - INCREASED HEIGHT TO 800 PIXELS
+# DISPLAY RESULTS - INCREASED HEIGHT TO 1200 PIXELS
 # ============================================================================
 if st.session_state.chat_response:
     st.divider()
@@ -324,7 +328,7 @@ if st.session_state.chat_response:
         st.text_area(
             "Response",
             value=st.session_state.chat_response,
-            height=1200,  # INCREASED FROM 500 TO 800
+            height=1200,
             disabled=True,
             label_visibility="collapsed",
             key="eng_response"
@@ -336,7 +340,7 @@ if st.session_state.chat_response:
             st.text_area(
                 "Translation",
                 value=st.session_state.tamil_translation,
-                height=1200,  # INCREASED FROM 500 TO 800
+                height=1200,
                 disabled=True,
                 label_visibility="collapsed",
                 key="tam_response"
@@ -345,7 +349,7 @@ if st.session_state.chat_response:
             st.text_area(
                 "Translation",
                 value="Click 'Translate to Tamil' button to see Tamil translation",
-                height=1200,  # INCREASED FROM 500 TO 800
+                height=1200,
                 disabled=True,
                 label_visibility="collapsed",
                 key="tam_placeholder"
