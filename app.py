@@ -324,7 +324,7 @@ if st.session_state.chat_response:
         st.text_area(
             "Response",
             value=st.session_state.chat_response,
-            height=800,  # INCREASED FROM 500 TO 800
+            height=1200,  # INCREASED FROM 500 TO 800
             disabled=True,
             label_visibility="collapsed",
             key="eng_response"
@@ -336,7 +336,7 @@ if st.session_state.chat_response:
             st.text_area(
                 "Translation",
                 value=st.session_state.tamil_translation,
-                height=800,  # INCREASED FROM 500 TO 800
+                height=1200,  # INCREASED FROM 500 TO 800
                 disabled=True,
                 label_visibility="collapsed",
                 key="tam_response"
@@ -345,7 +345,7 @@ if st.session_state.chat_response:
             st.text_area(
                 "Translation",
                 value="Click 'Translate to Tamil' button to see Tamil translation",
-                height=800,  # INCREASED FROM 500 TO 800
+                height=1200,  # INCREASED FROM 500 TO 800
                 disabled=True,
                 label_visibility="collapsed",
                 key="tam_placeholder"
