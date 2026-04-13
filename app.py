@@ -76,12 +76,10 @@ textarea {
     margin: 8px 0;
 }
 
-
-
 /* Buttons */
 .stButton > button {
-    font-weight: bold;background: linear-gradient(135deg, #059669, #047857) !important;
-    font-size: 1.1rem;color: white !important;
+    font-weight: bold;
+    font-size: 1.1rem;
     border-radius: 6px;
 }
 
