@@ -243,7 +243,7 @@ st.markdown('<h1 class="main-header">⚖️ 10th Standard TN State Board Science
 
 # Suggestions
 st.markdown('<p class="section-header">💡 Suggested Prompts</p>', unsafe_allow_html=True)
-suggestions = ["Explain Newton's First Law", "What is photosynthesis?", "Explain Ohm's Law"]
+suggestions = ["Explain Newton's First Law", "Explain Newton's Second Law?", "Explain Ohm's Law"]
 cols = st.columns(len(suggestions))
 for i, suggestion in enumerate(suggestions):
     with cols[i]:
