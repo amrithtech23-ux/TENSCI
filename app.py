@@ -70,7 +70,7 @@ textarea {
 .stButton > button {
     font-weight: bold;
     font-size: 1.1rem;
-    border-radius: 6px;
+    border-radius: 8px;
 }
 
 /* Headers */
