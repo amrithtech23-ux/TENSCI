@@ -71,6 +71,7 @@ textarea {
     font-weight: bold;
     font-size: 1.1rem;
     border-radius: 6px;
+    color: #28a745 !important;
 }
 
 /* Headers */
