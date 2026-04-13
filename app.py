@@ -43,10 +43,11 @@ textarea.stTextArea,
     line-height: 1.6 !important;
     white-space: pre-wrap !important;
     word-wrap: break-word !important;
-    /* FIX FOR SCROLL/PASTE POSITION */
+    /* FIX FOR SCROLL POSITION - Force text to top */
     overflow-y: auto !important;
     scroll-behavior: auto !important;
     vertical-align: top !important;
+    text-align: left !important;
 }
 
 /* SPECIFIC FIX - Force white text in ALL textareas */
@@ -55,6 +56,7 @@ textarea {
     -webkit-text-fill-color: #ffffff !important;
     /* Ensure text starts at the top */
     display: block;
+    padding-top: 10px !important;
 }
 
 /* Section headers in GREEN */
@@ -124,6 +126,12 @@ div[data-testid="stMarkdown"] h6 {
 /* Column spacing */
 .stColumns {
     margin: 10px 0;
+}
+
+/* FIX: Ensure text area content is visible at top */
+div[data-testid="stTextArea"] > div > textarea {
+    overflow-y: scroll !important;
+    overflow-x: hidden !important;
 }
 </style>
 """, unsafe_allow_html=True)
@@ -416,13 +424,15 @@ st.divider()
 # ============================================================================
 st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
 
-# FIX: Use a unique key to force refresh if needed, but simpler logic below is usually sufficient
+# Use a unique key to force refresh
+text_area_key = f"main_input_{len(st.session_state.chat_response) if st.session_state.chat_response else 0}"
+
 user_input = st.text_area(
     "Type your science question here...",
-    value=st.session_state.user_query,
+    value="" if st.session_state.chat_response else st.session_state.user_query,
     height=100,
     label_visibility="collapsed",
-    key="main_input_area"
+    key=text_area_key
 )
 
 col1, col2, col3 = st.columns(3)
@@ -497,7 +507,7 @@ Provide a clear explanation covering: 1. Definition 2. Key Formulas 3. Examples 
         return f"⚠️ Error: {str(e)}"
 
 # ============================================================================
-# ✅ CRITICAL FIX: BUTTON ACTIONS
+# BUTTON ACTIONS
 # ============================================================================
 
 # 1. SUBMIT ACTION
