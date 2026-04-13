@@ -382,4 +382,4 @@ st.markdown("""
 <div style='text-align: center; color: #6b7280;'>
 📚 TENSCI Chatbot | TN State Board 10th Standard Science
 </div>
-""", unsafe_allow_html=True)
+""", unsafe_allow_html=True) 
