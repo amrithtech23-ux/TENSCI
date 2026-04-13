@@ -440,9 +440,10 @@ for i, prompt in enumerate(suggestions):
         col_btn1, col_btn2 = st.columns([3, 1])
         with col_btn1:
             if st.button("Use Prompt", key=f"use_{i}", use_container_width=True):
-                st.session_state.user_query = prompt
+                # Clear previous results FIRST
                 st.session_state.chat_response = ""
                 st.session_state.tamil_translation = ""
+                st.session_state.user_query = prompt  # Set the query
                 st.rerun()
         with col_btn2:
             if st.button("📋", key=f"copy_{i}", help="Copy to clipboard"):
@@ -455,12 +456,16 @@ st.divider()
 # USER INPUT SECTION
 # ============================================================================
 st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
+
+# Use a unique key for the text area to force refresh
+text_area_key = f"main_input_{len(st.session_state.chat_response)}"
+
 user_input = st.text_area(
     "Type your science question here...",
-    value=st.session_state.user_query,
+    value=st.session_state.user_query if not st.session_state.chat_response else "",
     height=100,
     label_visibility="collapsed",
-    key="main_input"
+    key=text_area_key
 )
 
 col1, col2, col3 = st.columns(3)
@@ -561,25 +566,24 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
         return f"⚠️ Unexpected Error: {str(e)}\n\nPlease verify your OPENROUTER_API_KEY in secrets.toml."
 
 # ============================================================================
-# ✅ KEY FIX: API CALL & RESPONSE HANDLING - SIMPLIFIED AUTO-RESET
+# ✅ KEY FIX: API CALL & RESPONSE HANDLING - PROPER AUTO-RESET
 # ============================================================================
 if submit_btn and user_input.strip():
-    # ✅ ALWAYS auto-reset: clear previous results when submit is clicked
+    current_query = user_input.strip()
+    
+    # ✅ ALWAYS clear previous results BEFORE search
     st.session_state.chat_response = ""
     st.session_state.tamil_translation = ""
     
-    # ✅ Update session state with current input
-    current_query = user_input.strip()
-    st.session_state.user_query = current_query
-    
     with st.spinner("🔍 Searching topics and retrieving academic response..."):
         # ✅ Perform search with current query
-        st.session_state.chat_response = get_response_from_topics(
-            current_query, 
-            st.session_state.topics_list
-        )
+        response = get_response_from_topics(current_query, st.session_state.topics_list)
+        
+        # ✅ Update session state AFTER search completes
+        st.session_state.chat_response = response
+        st.session_state.user_query = current_query
     
-    # ✅ Rerun to immediately display new results
+    # ✅ Rerun to display new results
     st.rerun()
 
 # ============================================================================
@@ -621,7 +625,7 @@ if translate_btn and st.session_state.chat_response:
         st.rerun()
 
 # ============================================================================
-# RESET HANDLING
+# RESET HANDLING - COMPLETE CLEAR
 # ============================================================================
 if reset_btn:
     st.session_state.user_query = ""
