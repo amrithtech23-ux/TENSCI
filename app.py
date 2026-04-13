@@ -572,7 +572,6 @@ Use formal academic language suitable for Tamil Nadu State Board 10th standard s
 # API CALL & RESPONSE HANDLING - FIXED AUTO-RESET MECHANISM
 # ============================================================================
 if submit_btn and user_input.strip():
-    reset_btn; -- 2026
     current_query = user_input.strip()
     last_query = st.session_state.get('last_search_query', '')
     
