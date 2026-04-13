@@ -73,6 +73,12 @@ textarea {
     border-radius: 6px;
 }
 
+.stButton1 > button {
+    font-weight: bold;
+    font-size: 1.1rem;
+    border-radius: 6px;
+}
+
 /* Headers */
 h1, h2, h3, h4, h5, h6 {
     color: #0056b3 !important;
@@ -249,10 +255,12 @@ for i, suggestion in enumerate(suggestions):
     with cols[i]:
         if st.button(f"📌 {suggestion}", key=f"sugg_{i}", use_container_width=True):
             st.session_state.query_input = suggestion
-            st.session_state.chat_response = ""
-            st.session_state.tamil_translation = ""
             st.session_state.search_counter += 1
             st.rerun()
+        if st.button1(f"📌 {suggestion}", key=f"sugg_{i}", use_container_width=True1):
+            st.session_state.chat_response = ""
+            st.session_state.tamil_translation = ""
+
 
 st.divider()
 
