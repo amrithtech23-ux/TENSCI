@@ -66,15 +66,6 @@ textarea {
     margin: 1rem 0 !important;
 }
 
-/* Suggestions */
-.suggestion-container {
-    background-color: #f8f9fa;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    padding: 12px;
-    margin: 8px 0;
-}
-
 /* Buttons */
 .stButton > button {
     font-weight: bold;
@@ -100,6 +91,8 @@ if 'tamil_translation' not in st.session_state:
     st.session_state.tamil_translation = ""
 if 'topics' not in st.session_state:
     st.session_state.topics = []
+if 'search_counter' not in st.session_state:
+    st.session_state.search_counter = 0
 
 # ============================================================================
 # TAMIL VOCABULARY
@@ -142,25 +135,36 @@ if not st.session_state.topics:
     st.session_state.topics = load_topics_from_file()
 
 # ============================================================================
-# SEARCH FUNCTION
+# SEARCH FUNCTION - IMPROVED
 # ============================================================================
 def search_relevant_topics(query, topics_list):
     query_lower = query.lower().strip()
-    stop_words = {'explain', 'what', 'how', 'the', 'and', 'or', 'is', 'are'}
+    
+    # Remove common words
+    stop_words = {'explain', 'what', 'how', 'the', 'and', 'or', 'is', 'are', 'of', 'in', 'to', 'for'}
     query_words = [w for w in query_lower.split() if w not in stop_words and len(w) > 2]
     
     scored_topics = []
+    
     for topic in topics_list:
         topic_text = topic['search_text']
         score = 0
+        
+        # Exact phrase match - highest score
         if query_lower in topic_text:
             score = 100
+        elif topic_text in query_lower:
+            score = 80
         else:
+            # Word matching
             matches = sum(1 for word in query_words if word in topic_text)
             if matches > 0:
                 score = (matches / len(query_words)) * 50
+        
         if score > 0:
             scored_topics.append((score, topic))
+    
+    # Sort by score descending
     scored_topics.sort(key=lambda x: -x[0])
     return [topic for score, topic in scored_topics[:10]]
 
@@ -247,6 +251,7 @@ for i, suggestion in enumerate(suggestions):
             st.session_state.query_input = suggestion
             st.session_state.chat_response = ""
             st.session_state.tamil_translation = ""
+            st.session_state.search_counter += 1
             st.rerun()
 
 st.divider()
@@ -254,13 +259,15 @@ st.divider()
 # Input Section
 st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
 
-# ✅ KEY FIX: Dynamic key forces text area to refresh when results exist
-text_area_key = f"main_input_{1 if st.session_state.chat_response else 0}"
+# Use a unique key that changes with search_counter to force refresh
+text_area_key = f"main_input_{st.session_state.search_counter}"
 
-# Bind text area - show empty when results exist, show query when no results
+# Show empty text area if there are results, otherwise show the query
+display_value = "" if st.session_state.chat_response else st.session_state.query_input
+
 user_query = st.text_area(
     "Type your question:",
-    value="" if st.session_state.chat_response else st.session_state.query_input,
+    value=display_value,
     height=100,
     key=text_area_key,
     label_visibility="collapsed"
@@ -269,11 +276,11 @@ user_query = st.text_area(
 # Buttons
 col1, col2, col3 = st.columns(3)
 with col1:
-    submit_clicked = st.button("📤 Submit", use_container_width=True, key="submit_btn")
+    submit_clicked = st.button("📤 Submit", use_container_width=True, key=f"submit_{st.session_state.search_counter}")
 with col2:
-    translate_clicked = st.button("🌐 Translate to Tamil", use_container_width=True, disabled=not st.session_state.chat_response, key="translate_btn")
+    translate_clicked = st.button("🌐 Translate to Tamil", use_container_width=True, disabled=not st.session_state.chat_response, key=f"translate_{st.session_state.search_counter}")
 with col3:
-    reset_clicked = st.button("🔄 Reset", use_container_width=True, key="reset_btn")
+    reset_clicked = st.button("🔄 Reset", use_container_width=True, key=f"reset_{st.session_state.search_counter}")
 
 # ============================================================================
 # ACTION HANDLERS
@@ -281,7 +288,6 @@ with col3:
 
 # SUBMIT - FIXED LOGIC
 if submit_clicked:
-    # Get the text currently in the text area (user's new input)
     current_query = user_query.strip()
     
     if current_query:
@@ -289,18 +295,20 @@ if submit_clicked:
         st.session_state.chat_response = ""
         st.session_state.tamil_translation = ""
         
-        # 2. Update input state to the new query
+        # 2. Update input
         st.session_state.query_input = current_query
         
         # 3. Perform Search
         with st.spinner("🔍 Searching..."):
             relevant = search_relevant_topics(current_query, st.session_state.topics)
+            
             if relevant:
                 st.session_state.chat_response = get_ai_response(current_query, relevant)
             else:
                 st.session_state.chat_response = "⚠️ No relevant topics found. Try rephrasing."
         
-        # 4. Rerun to update UI with new results
+        # 4. Increment counter to force UI refresh
+        st.session_state.search_counter += 1
         st.rerun()
 
 # RESET
@@ -308,16 +316,18 @@ if reset_clicked:
     st.session_state.query_input = ""
     st.session_state.chat_response = ""
     st.session_state.tamil_translation = ""
+    st.session_state.search_counter += 1
     st.rerun()
 
 # TRANSLATE
 if translate_clicked and st.session_state.chat_response:
     with st.spinner("🌐 Translating..."):
         st.session_state.tamil_translation = translate_to_tamil(st.session_state.chat_response)
+    st.session_state.search_counter += 1
     st.rerun()
 
 # ============================================================================
-# DISPLAY RESULTS - INCREASED HEIGHT TO 1200 PIXELS
+# DISPLAY RESULTS
 # ============================================================================
 if st.session_state.chat_response:
     st.divider()
@@ -328,10 +338,10 @@ if st.session_state.chat_response:
         st.text_area(
             "Response",
             value=st.session_state.chat_response,
-            height=1200,
+            height=800,
             disabled=True,
             label_visibility="collapsed",
-            key="eng_response"
+            key=f"eng_{st.session_state.search_counter}"
         )
     
     with col_tam:
@@ -340,19 +350,19 @@ if st.session_state.chat_response:
             st.text_area(
                 "Translation",
                 value=st.session_state.tamil_translation,
-                height=1200,
+                height=800,
                 disabled=True,
                 label_visibility="collapsed",
-                key="tam_response"
+                key=f"tam_{st.session_state.search_counter}"
             )
         else:
             st.text_area(
                 "Translation",
                 value="Click 'Translate to Tamil' button to see Tamil translation",
-                height=1200,
+                height=800,
                 disabled=True,
                 label_visibility="collapsed",
-                key="tam_placeholder"
+                key=f"tam_placeholder_{st.session_state.search_counter}"
             )
 
 st.markdown("<div style='text-align:center; color:#6b7280; margin-top:20px;'>TENSCI Chatbot | TN State Board 10th Science</div>", unsafe_allow_html=True)
