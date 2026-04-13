@@ -49,7 +49,7 @@ textarea.stTextArea,
     text-align: left !important;
     padding-top: 10px !important;
     padding-left: 10px !important;
-    height: 300% !important;
+    /* REMOVED: height: 300% !important; - This was interfering */
 }
 
 /* Force white text in ALL textareas */
