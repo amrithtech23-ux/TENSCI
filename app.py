@@ -351,4 +351,4 @@ if st.session_state.chat_response:
         else:
             st.info("Click 'Translate to Tamil' button to see translation")
 
-st.markdown("<div style='text-align:center; color:#6b7280; margin-top:20px;'>TENSCI Chatbot | TN State Board 10th Science</div>", unsafe_allow_html=True)
+st.markdown("<div style='text-align:center; color:#6b7280; margin-top:20px;'>TENSCI Chatbot | TN State Board 10th Science</div>", unsafe_allow_html=True) 
