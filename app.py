@@ -5,7 +5,7 @@ import random
 import re
 import time
 from deep_translator import GoogleTranslator
-
+ 
 # ============================================================================
 # PAGE CONFIGURATION
 # ============================================================================
