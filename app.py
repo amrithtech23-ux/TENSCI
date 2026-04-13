@@ -12,8 +12,7 @@ from deep_translator import GoogleTranslator
 st.set_page_config(
     page_title="TENSCI Chatbot",
     page_icon="⚖️",
-    layout="wide",
-    initial_sidebar_state="expanded"
+    layout="wide"
 )
 
 # ============================================================================
@@ -30,31 +29,40 @@ st.markdown("""
     margin-bottom: 2rem !important;
 }
 
-/* Text area styling */
-.stTextArea textarea {
+/* Text area styling - Blue background, WHITE text */
+.stTextArea textarea,
+div[data-testid="stTextArea"] textarea,
+textarea.stTextArea,
+.stTextArea > div > textarea {
     border: 4px solid #000000 !important;
     background-color: #0056b3 !important;
     color: #ffffff !important;
     font-weight: bold !important;
     font-size: 1.2rem !important;
     border-radius: 8px !important;
+    line-height: 1.6 !important;
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    overflow-y: auto !important;
+    scroll-behavior: auto !important;
+    vertical-align: top !important;
+    text-align: left !important;
 }
 
-/* Section headers */
+/* Force white text in ALL textareas */
+textarea {
+    color: #ffffff !important;
+    -webkit-text-fill-color: #ffffff !important;
+    display: block;
+    padding-top: 10px !important;
+}
+
+/* Section headers in GREEN */
 .section-header {
     color: #28a745 !important;
     font-weight: bold !important;
     font-size: 1.4rem !important;
     margin: 1rem 0 !important;
-}
-
-/* Suggestions */
-.suggestion-container {
-    background-color: #f8f9fa;
-    border: 2px solid #dee2e6;
-    border-radius: 8px;
-    padding: 12px;
-    margin: 8px 0;
 }
 
 /* Buttons */
@@ -68,11 +76,20 @@ st.markdown("""
 h1, h2, h3, h4, h5, h6 {
     color: #0056b3 !important;
 }
+
+/* Suggestions */
+.suggestion-container {
+    background-color: #f8f9fa;
+    border: 2px solid #dee2e6;
+    border-radius: 8px;
+    padding: 12px;
+    margin: 8px 0;
+}
 </style>
 """, unsafe_allow_html=True)
 
 # ============================================================================
-# SESSION STATE INITIALIZATION
+# SESSION STATE
 # ============================================================================
 if 'query_input' not in st.session_state:
     st.session_state.query_input = ""
@@ -101,7 +118,6 @@ TAMIL_VOCAB = {
 # ============================================================================
 @st.cache_data
 def load_topics_from_file():
-    """Load topics from AllTopic.txt"""
     try:
         with open("AllTopic.txt", "r", encoding="utf-8") as f:
             content = f.read()
@@ -125,7 +141,6 @@ def load_topics_from_file():
         st.error(f"Error loading topics: {e}")
         return []
 
-# Load topics once
 if not st.session_state.topics:
     st.session_state.topics = load_topics_from_file()
 
@@ -133,10 +148,8 @@ if not st.session_state.topics:
 # SEARCH FUNCTION
 # ============================================================================
 def search_relevant_topics(query, topics_list):
-    """Search for relevant topics based on query"""
     query_lower = query.lower().strip()
     
-    # Remove common words
     stop_words = {'explain', 'what', 'how', 'the', 'and', 'or', 'is', 'are'}
     query_words = [w for w in query_lower.split() if w not in stop_words and len(w) > 2]
     
@@ -146,11 +159,9 @@ def search_relevant_topics(query, topics_list):
         topic_text = topic['search_text']
         score = 0
         
-        # Exact phrase match - highest score
         if query_lower in topic_text:
             score = 100
         else:
-            # Word matching
             matches = sum(1 for word in query_words if word in topic_text)
             if matches > 0:
                 score = (matches / len(query_words)) * 50
@@ -158,7 +169,6 @@ def search_relevant_topics(query, topics_list):
         if score > 0:
             scored_topics.append((score, topic))
     
-    # Sort by score descending
     scored_topics.sort(key=lambda x: -x[0])
     return [topic for score, topic in scored_topics[:10]]
 
@@ -166,7 +176,6 @@ def search_relevant_topics(query, topics_list):
 # API FUNCTION
 # ============================================================================
 def get_ai_response(query, relevant_topics):
-    """Get response from AI API"""
     try:
         api_key = st.secrets.get("OPENROUTER_API_KEY")
         if not api_key:
@@ -208,11 +217,9 @@ def get_ai_response(query, relevant_topics):
 # TRANSLATION FUNCTION
 # ============================================================================
 def translate_to_tamil(text):
-    """Translate English text to Tamil"""
     try:
         translator = GoogleTranslator(source='en', target='ta')
         
-        # Chunk long text
         chunks = [text[i:i+4500] for i in range(0, len(text), 4500)]
         translated = []
         
@@ -222,7 +229,6 @@ def translate_to_tamil(text):
         
         result = " ".join(translated)
         
-        # Enhance with vocabulary
         for eng, tam in TAMIL_VOCAB.items():
             result = re.sub(r'\b' + eng + r'\b', tam, result, flags=re.IGNORECASE)
         
@@ -259,7 +265,6 @@ st.divider()
 # Input Section
 st.markdown('<p class="section-header">📝 Enter Your Query</p>', unsafe_allow_html=True)
 
-# Create unique key for text area to force refresh
 text_area_key = f"query_input_{st.session_state.run_counter}"
 
 user_query = st.text_area(
@@ -297,21 +302,17 @@ with st.sidebar:
 # ACTION HANDLERS
 # ============================================================================
 
-# SUBMIT - Always clears previous results first
+# SUBMIT
 if submit_clicked and user_query.strip():
-    # Clear everything first
     st.session_state.search_results = ""
     st.session_state.tamil_translation = ""
     
-    # Update input
     st.session_state.query_input = user_query.strip()
     
     with st.spinner("🔍 Searching..."):
-        # Search topics
         relevant = search_relevant_topics(user_query, st.session_state.topics)
         
         if relevant:
-            # Get AI response
             response = get_ai_response(user_query, relevant)
             st.session_state.search_results = response
         else:
@@ -320,7 +321,7 @@ if submit_clicked and user_query.strip():
     st.session_state.run_counter += 1
     st.rerun()
 
-# RESET - Clear everything
+# RESET
 if reset_clicked:
     st.session_state.query_input = ""
     st.session_state.search_results = ""
@@ -366,7 +367,14 @@ if st.session_state.search_results:
                 key=f"tam_{st.session_state.run_counter}"
             )
         else:
-            st.info("Click 'Translate to Tamil' button to see Tamil translation")
+            st.text_area(
+                "Translation",
+                value="Click 'Translate to Tamil' button to see Tamil translation",
+                height=500,
+                disabled=True,
+                label_visibility="collapsed",
+                key=f"tam_placeholder_{st.session_state.run_counter}"
+            )
 
 # Footer
 st.divider()
