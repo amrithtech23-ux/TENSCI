@@ -1,3 +1,4 @@
+# app.py
 import streamlit as st
 import requests
 import random
@@ -48,7 +49,7 @@ textarea.stTextArea,
     text-align: left !important;
     padding-top: 10px !important;
     padding-left: 10px !important;
-    /* REMOVED: height: 300% !important; - This was interfering */
+    height: 100% !important;
 }
 
 /* Force white text in ALL textareas */
@@ -291,3 +292,63 @@ if submit_clicked:
         # Perform Search
         with st.spinner("🔍 Searching..."):
             relevant = search_relevant_topics(current_query, st.session_state.topics)
+            if relevant:
+                st.session_state.chat_response = get_ai_response(current_query, relevant)
+            else:
+                st.session_state.chat_response = "⚠️ No relevant topics found. Try rephrasing."
+        
+        st.rerun()
+
+# RESET
+if reset_clicked:
+    st.session_state.query_input = ""
+    st.session_state.chat_response = ""
+    st.session_state.tamil_translation = ""
+    st.rerun()
+
+# TRANSLATE
+if translate_clicked and st.session_state.chat_response:
+    with st.spinner("🌐 Translating..."):
+        st.session_state.tamil_translation = translate_to_tamil(st.session_state.chat_response)
+    st.rerun()
+
+# ============================================================================
+# DISPLAY RESULTS - INCREASED HEIGHT TO 800 PIXELS
+# ============================================================================
+if st.session_state.chat_response:
+    st.divider()
+    col_eng, col_tam = st.columns(2)
+    
+    with col_eng:
+        st.markdown('<p class="section-header">📖 English Response</p>', unsafe_allow_html=True)
+        st.text_area(
+            "Response",
+            value=st.session_state.chat_response,
+            height=800,  # INCREASED FROM 500 TO 800
+            disabled=True,
+            label_visibility="collapsed",
+            key="eng_response"
+        )
+    
+    with col_tam:
+        st.markdown('<p class="section-header">📚 Tamil Translation</p>', unsafe_allow_html=True)
+        if st.session_state.tamil_translation:
+            st.text_area(
+                "Translation",
+                value=st.session_state.tamil_translation,
+                height=800,  # INCREASED FROM 500 TO 800
+                disabled=True,
+                label_visibility="collapsed",
+                key="tam_response"
+            )
+        else:
+            st.text_area(
+                "Translation",
+                value="Click 'Translate to Tamil' button to see Tamil translation",
+                height=800,  # INCREASED FROM 500 TO 800
+                disabled=True,
+                label_visibility="collapsed",
+                key="tam_placeholder"
+            )
+
+st.markdown("<div style='text-align:center; color:#6b7280; margin-top:20px;'>TENSCI Chatbot | TN State Board 10th Science</div>", unsafe_allow_html=True)
